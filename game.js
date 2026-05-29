@@ -43,11 +43,15 @@ const STRINGS = {
     death_golf:      'Bro, die Golf denkt dat dit Zandvoort is!',
     death_banana:    'Wie pleurt hier nou een banaan neer man!',
     death_bicycle:   'Waar heb jij leren fietsen joh?!',
+    death_knife:     'Gast, wat prik jij?',
+    death_golf_Zuid: 'Rustig met dat Golfje van je, gek!',
     death_fall:      'Je ken ook nergens normaal lopen hier\u2026',
     level1_name:     'Trekpleisters',
     level1_desc:     'Een tour langs de iconen van Rotterdam.',
-    level2_name:     'Marathon',
-    level2_desc:     'Loop de 42km Rotterdam Marathon.',
+    level2_name:     'Zuid-Rotterdam',
+    level2_desc:     'Probeer te overleven in deze buurt.',
+    level3_name:     'Marathon',
+    level3_desc:     'Loop de 42km Rotterdam Marathon.',
   },
   EN: {
     subtitle:        'A retro run through the city',
@@ -71,11 +75,15 @@ const STRINGS = {
     death_golf:      'Bro, that Golf thinks this is Zandvoort!',
     death_banana:    'Who throws a banana on the course?!',
     death_bicycle:   'Where did you learn to ride a bike?!',
+    death_knife:     'Dude, what are you sticking?',
+    death_golf_Zuid: 'Easy with that Golf of yours, maniac!',
     death_fall:      'You really can\'t walk anywhere normal here\u2026',
     level1_name:     'Landmarks',
     level1_desc:     'A tour past the icons of Rotterdam.',
-    level2_name:     'Marathon',
-    level2_desc:     'Run the 42km Rotterdam Marathon.',
+    level2_name:     'Zuid-Rotterdam',
+    level2_desc:     'Try to survive this neighborhood.',
+    level3_name:     'Marathon',
+    level3_desc:     'Run the 42km Rotterdam Marathon.',
   },
 };
 
@@ -472,8 +480,69 @@ const LEVELS = [
       { x: 2700, y: 340 },
     ],
   },
+  // ── Level 2: Zuid-Rotterdam ──────────────────────────────────────────────────
   {
     id: 2,
+    name: 'Zuid-Rotterdam',
+    description: 'Try to survive this neighborhood',
+    unlocked: false,
+    width: 3500,
+    skyColor: '#ffe28a',
+    silhouetteColor: '#666547',
+    platforms: [
+      // ── Ground segments — same gap positions as Level 1 ──
+      { x: 0,    y: GROUND_Y, w: 600,  h: 50, color: '#444', type: 'ground' },
+      { x: 650,  y: GROUND_Y, w: 450,  h: 50, color: '#444', type: 'ground' },
+      { x: 1100, y: GROUND_Y, w: 550,  h: 50, color: '#444', type: 'ground' },
+      { x: 1650, y: GROUND_Y, w: 350,  h: 50, color: '#444', type: 'ground' },
+      { x: 2000, y: GROUND_Y, w: 800,  h: 50, color: '#444', type: 'ground' },
+
+      // ── Section 1: warehouse rooftop near gap at x:600 ──
+      { x: 280,  y: 340, w: 160, h: 12, color: '#444', type: 'platform' }, // low wide rooftop
+      { x: 480,  y: 260, w: 100, h: 12, color: '#444', type: 'platform' }, // upper rooftop ledge
+      { x: 530,  y: 190, w:  80, h: 12, color: '#444', type: 'platform' }, // crane tip (top)
+
+      // ── Section 2: dock crane walkway bridging gap at x:1050 ──
+      { x: 680,  y: 350, w: 140, h: 12, color: '#444', type: 'platform' }, // rooftop
+      { x: 860,  y: 280, w: 120, h: 12, color: '#444', type: 'platform' }, // mid crane arm
+      { x: 1010, y: 210, w:  70, h: 12, color: '#444', type: 'platform' }, // narrow crane tip (top)
+
+      // ── Section 3: container stack stepping stones near gap at x:1600 ──
+      { x: 1150, y: 360, w: 130, h: 12, color: '#444', type: 'platform' }, // low container
+      { x: 1320, y: 290, w: 130, h: 12, color: '#444', type: 'platform' }, // mid container
+      { x: 1490, y: 220, w: 100, h: 12, color: '#444', type: 'platform' }, // top container
+
+      // ── Section 4: short dock platform near gap at x:1950 ──
+      { x: 1700, y: 350, w: 120, h: 12, color: '#444', type: 'platform' }, // rooftop
+      { x: 1800, y: 270, w: 120, h: 12, color: '#444', type: 'platform' }, // raised walkway
+      { x: 1880, y: 200, w:  80, h: 12, color: '#444', type: 'platform' }, // crane tip (top)
+
+      // ── Section 5: approach to finish ──
+      { x: 2100, y: 340, w: 200, h: 12, color: '#444', type: 'platform' }, // long warehouse roof
+      { x: 2350, y: 260, w: 130, h: 12, color: '#444', type: 'platform' }, // elevated dock
+      { x: 2600, y: 190, w: 150, h: 12, color: '#444', type: 'platform' }, // final high roof
+    ],
+    finishFlag: { x: 2980, y: 300, w: 20, h: 100 },
+    landmarks: [
+      { x: 320,  y: 160, name: 'Chaos op straat',    fact: 'Scooters and cars set their own traffic rules around here.',                                                                     factNL: 'Scooters en auto\'s bepalen hier hun eigen verkeersregels.' },
+      { x: 860,  y: 180, name: 'Nieuwe Maas',         fact: 'Rotterdam Zuid lies south of the Nieuwe Maas river.',                                                                           factNL: 'Rotterdam Zuid ligt ten zuiden van de Nieuwe Maas.' },
+      { x: 1360, y: 190, name: 'Haven-mentaliteit',   fact: 'The area has been strongly shaped by the port and industry, with a true "no-nonsense" mentality.',                              factNL: 'Het gebied is sterk gevormd door de haven en industrie, met een echte "niet lullen maar poetsen"-mentaliteit.' },
+      { x: 1860, y: 170, name: 'Afrikaandermarkt',    fact: 'The Afrikaandermarkt is well known and draws visitors from all over Rotterdam (and beyond).',                                   factNL: 'De Afrikaandermarkt is super bekend en trekt bezoekers uit heel Rotterdam (en daarbuiten).' },
+      { x: 2650, y: 160, name: 'Rotterdam Ahoy',      fact: 'Major events, concerts and trade shows take place at Rotterdam Ahoy.',                                                          factNL: 'Grote evenementen, concerten en beurzen vinden plaats in Rotterdam Ahoy.' },
+    ],
+    emptyStars: [
+      { x: 150,  y: 370 },
+      { x: 420,  y: 230 },
+      { x: 560,  y: 160 },
+      { x: 760,  y: 320 },
+      { x: 1050, y: 180 },
+      { x: 1430, y: 190 },
+      { x: 1830, y: 240 },
+      { x: 2380, y: 230 },
+    ],
+  },
+  {
+    id: 3,
     name: 'Marathon',
     description: 'Run the 42km Rotterdam Marathon',
     unlocked: false,
@@ -593,11 +662,13 @@ let popup = null; // { name, fact, timer }
 let deathCause = null;   // 'seagull' | 'golf' | 'fall'
 let deathIsGameOver = false;
 const DEATH_MESSAGE_KEYS = {
-  seagull: 'death_seagull',
-  golf:    'death_golf',
-  fall:    'death_fall',
-  banana:  'death_banana',
-  bicycle: 'death_bicycle',
+  seagull:   'death_seagull',
+  golf:      'death_golf',
+  fall:      'death_fall',
+  banana:    'death_banana',
+  bicycle:   'death_bicycle',
+  knife:     'death_knife',
+  golf_Zuid: 'death_golf_Zuid',
 };
 
 // ─── Enemy System ─────────────────────────────────────────────────────────────
@@ -681,60 +752,62 @@ function drawGolfCar(ex, ey, dir) {
   ctx.restore();
 }
 
-// Banana enemy sprite — within ~36x28px bounding box (enlarged for clarity)
+// Banana enemy sprite — realistic curved crescent with gradient shading
 function drawBanana(ex, ey, dir) {
   ctx.save();
   ctx.translate(ex + 18, ey + 14);
   ctx.scale(dir, 1);
 
-  // Dark brown outline — drawn slightly larger underneath the yellow body
-  const outlineRows = [
-    [-4, 8,  -13, 4],
-    [-7, 14, -10, 4],
-    [-9, 18,  -7, 4],
-    [-9, 18,  -3, 4],
-    [-7, 14,   1, 4],
-    [-4, 10,   5, 4],
-    [-1,  6,   8, 4],
-  ];
-  ctx.fillStyle = '#5C2E00';
-  for (const [dx, w, dy, h] of outlineRows) {
-    ctx.fillRect(dx, dy, w, h);
-  }
+  // Crescent banana body using bezier curves
+  // Outer (convex) curve sweeps from top-tip down-right to bottom-tip;
+  // inner (concave) curve comes back up-left.
+  ctx.beginPath();
+  ctx.moveTo(0, -13);                          // top tip
+  ctx.bezierCurveTo(10, -13,  14,  2,  8, 10); // outer convex edge
+  ctx.lineTo(5, 12);                           // bottom tip
+  ctx.bezierCurveTo( 2,  4,  -2, -4, -4, -10); // inner concave edge
+  ctx.closePath();
 
-  // Main banana body — bright yellow, crescent shape
-  const rows = [
-    [-3, 6,  -12, 3],
-    [-6, 12,  -9, 3],
-    [-8, 16,  -6, 3],
-    [-8, 16,  -3, 3],
-    [-6, 12,   0, 3],
-    [-3, 8,    3, 3],
-    [ 0, 4,    6, 3],
-  ];
-  ctx.fillStyle = '#FFE135'; // bright banana yellow
-  for (const [dx, w, dy, h] of rows) {
-    ctx.fillRect(dx, dy, w, h);
-  }
+  // Gradient: bright highlight → main yellow → shadow
+  const grad = ctx.createLinearGradient(-6, -13, 14, 10);
+  grad.addColorStop(0.0,  '#FFF9A0'); // highlight
+  grad.addColorStop(0.25, '#FFE135'); // main banana yellow
+  grad.addColorStop(0.65, '#F5C800'); // mid shadow
+  grad.addColorStop(1.0,  '#C8960A'); // deep inner shadow
+  ctx.fillStyle = grad;
+  ctx.fill();
 
-  // Brown tips — top and bottom
-  ctx.fillStyle = '#5C2E00';
-  ctx.fillRect(-3, -14, 6, 3); // top tip
-  ctx.fillRect( 1,   8, 4, 3); // bottom tip
+  // Dark outline
+  ctx.strokeStyle = '#5C2E00';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
-  // Inner curve shadow stripe (gives 3D / curved feel)
-  ctx.fillStyle = '#D4A000';
-  ctx.fillRect(-2, -8, 3, 15);
+  // Top stem nub
+  ctx.beginPath();
+  ctx.ellipse(0, -13, 2.5, 3, Math.PI * 0.1, 0, Math.PI * 2);
+  ctx.fillStyle = '#4A2000';
+  ctx.fill();
 
-  // Highlight stripe for extra pop
-  ctx.fillStyle = '#FFF176';
-  ctx.fillRect(-5, -9, 2, 12);
+  // Bottom tip nub
+  ctx.beginPath();
+  ctx.ellipse(5.5, 12, 2, 2.5, Math.PI * 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = '#4A2000';
+  ctx.fill();
+
+  // Glossy highlight streak along outer convex face
+  ctx.beginPath();
+  ctx.moveTo(1, -10);
+  ctx.bezierCurveTo(7, -9, 11, 0, 7, 7);
+  ctx.strokeStyle = 'rgba(255,255,220,0.55)';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
 
   ctx.restore();
 }
 
 // Bicycle enemy sprite — within ~36x20px bounding box
-function drawBicycle(ex, ey, dir) {
+function drawBicycle(ex, ey, dir, frameColor = '#444') {
   ctx.save();
   ctx.translate(ex + 18, ey + 10);
   ctx.scale(dir, 1);
@@ -755,7 +828,7 @@ function drawBicycle(ex, ey, dir) {
 
   // Frame — triangle: rear-axle → seat post → front-fork
   const seatX = -2, seatY = -5;
-  ctx.strokeStyle = '#444';
+  ctx.strokeStyle = frameColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(rearX,  wheelY);  // rear axle
@@ -780,7 +853,7 @@ function drawBicycle(ex, ey, dir) {
   ctx.stroke();
 
   // Handlebar — small horizontal nub
-  ctx.strokeStyle = '#333';
+  ctx.strokeStyle = frameColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(handleX - 2, handleY - 3);
@@ -868,10 +941,79 @@ function drawSeagull(ex, ey, dir) {
   ctx.restore();
 }
 
+// ─── Draw Knife Guy ───────────────────────────────────────────────────────────
+function drawKnifeGuy(ex, ey, dir) {
+  ctx.save();
+  // Translate to center-bottom of the enemy hitbox (24 × 30)
+  ctx.translate(ex + 12, ey + 30);
+  ctx.scale(dir, 1);
+
+  // Legs
+  ctx.fillStyle = '#222';
+  ctx.fillRect(-7, -10, 5, 10);  // left leg
+  ctx.fillRect( 2, -10, 5, 10);  // right leg
+
+  // Body — dark jacket
+  ctx.fillStyle = '#333';
+  ctx.fillRect(-8, -22, 16, 13);
+
+  // Head — skin tone
+  ctx.fillStyle = '#f4a261';
+  ctx.beginPath();
+  ctx.arc(0, -27, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#212529';
+  ctx.beginPath();
+  ctx.arc(2, -28, 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Knife arm (right arm, extended forward)
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(8, -20);   // shoulder
+  ctx.lineTo(14, -16);  // elbow / hand
+  ctx.stroke();
+
+  // Knife blade
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(14, -16);   // handle end
+  ctx.lineTo(21, -12);   // blade tip
+  ctx.stroke();
+
+  // Knife glint
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(15, -15);
+  ctx.lineTo(19, -13);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 // Spawn data + resetEnemies — level-aware
 function resetEnemies() {
   if (currentLevel.id === 2) {
-    // Level 2: bananas (mirror seagull positions) + bicycles (mirror car positions)
+    // Level 2 (Zuid-Rotterdam): knife guys (mirror seagull zones) + VW Golf (mirror car zones)
+    const knifeGuys = [
+      { x: 200,  y: GROUND_Y - 30, w: 24, h: 30, vx: 60,  type: 'knife', alive: true, patrolMin: 100,  patrolMax: 250,  points: 30, deathMsg: 'knife' },
+      { x: 700,  y: GROUND_Y - 30, w: 24, h: 30, vx: 60,  type: 'knife', alive: true, patrolMin: 650,  patrolMax: 1010, points: 30, deathMsg: 'knife' },
+      { x: 1700, y: GROUND_Y - 30, w: 24, h: 30, vx: 60,  type: 'knife', alive: true, patrolMin: 1650, patrolMax: 1900, points: 30, deathMsg: 'knife' },
+      { x: 2500, y: GROUND_Y - 30, w: 24, h: 30, vx: 60,  type: 'knife', alive: true, patrolMin: 2400, patrolMax: 2750, points: 30, deathMsg: 'knife' },
+    ];
+    const golfCarsZuid = [
+      { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50, deathMsg: 'golf_Zuid' },
+      { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50, deathMsg: 'golf_Zuid' },
+      { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50, deathMsg: 'golf_Zuid' },
+    ];
+    enemies = [...knifeGuys, ...golfCarsZuid];
+  } else if (currentLevel.id === 3) {
+    // Level 3: bananas (mirror seagull positions) + bicycles (mirror car positions)
     const bananas = [
       { x: 200,  y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 100,  patrolMax: 250,  points: 30, deathMsg: 'banana' },
       { x: 700,  y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 650,  patrolMax: 1010, points: 30, deathMsg: 'banana' },
@@ -879,9 +1021,9 @@ function resetEnemies() {
       { x: 2500, y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 2400, patrolMax: 2750, points: 30, deathMsg: 'banana' },
     ];
     const bicycles = [
-      { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50, deathMsg: 'bicycle' },
-      { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50, deathMsg: 'bicycle' },
-      { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50, deathMsg: 'bicycle' },
+      { x: 300,  y: GROUND_Y - 28, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50, deathMsg: 'bicycle' },
+      { x: 1200, y: GROUND_Y - 28, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50, deathMsg: 'bicycle' },
+      { x: 2100, y: GROUND_Y - 28, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50, deathMsg: 'bicycle' },
     ];
     enemies = [...bananas, ...bicycles];
   } else {
@@ -1041,7 +1183,7 @@ function update(dt) {
     } else {
       // Side or bottom hit — lose a life
       player.lives--;
-      deathCause = en.type;
+      deathCause = en.deathMsg || en.type;
       if (player.lives <= 0) {
         playGameOverSound();
         saveHighScore();
@@ -1285,8 +1427,8 @@ function drawPlatforms() {
     drawRect(sx, plat.y, plat.w, plat.h, plat.color);
     // Dark edge
     drawRect(sx, plat.y, plat.w, 3, 'rgba(0,0,0,0.3)');
-    // Lane markings on Level 2 elevated road sections
-    if (currentLevel.id === 2 && plat.type === 'platform') {
+    // Lane markings on Level 3 (Marathon) elevated road sections
+    if (currentLevel.id === 3 && plat.type === 'platform') {
       ctx.fillStyle = '#ffffff';
       const dashW = 4, dashH = 2, dashSpacing = 20;
       const markY = plat.y + 5; // a few pixels below the top edge
@@ -1474,21 +1616,21 @@ function drawLandmarks() {
     if (sx < -40 || sx > CANVAS_W + 40) continue;
     ctx.save();
     if (lm.isFact) {
-      if (currentLevel.id === 2) {
-        // Level 2: draw medal for fact collectibles
+      if (currentLevel.id === 3) {
+        // Level 3: draw medal for fact collectibles
         drawMedal(sx, lm.y);
       } else {
-        // Level 1: draw spinning gold star
-        ctx.fillStyle = RETRO.gold;
+        // Level 1 / Level 2: draw spinning star
+        ctx.fillStyle = currentLevel.id === 2 ? '#fb2e01' : RETRO.gold;
         drawStar(sx, lm.y, lm.animAngle);
       }
     } else {
-      if (currentLevel.id === 2) {
-        // Level 2: draw water cup for bonus collectibles
+      if (currentLevel.id === 3) {
+        // Level 3: draw water cup for bonus collectibles
         drawWaterCup(sx, lm.y);
       } else {
-        // Level 1: draw spinning gold star
-        ctx.fillStyle = RETRO.gold;
+        // Level 1 / Level 2: draw spinning star
+        ctx.fillStyle = currentLevel.id === 2 ? '#fb2e01' : RETRO.gold;
         drawStar(sx, lm.y, lm.animAngle);
       }
     }
@@ -1507,10 +1649,12 @@ function drawEnemies() {
       drawGolfCar(sx, en.y, dir);
     } else if (en.type === 'seagull') {
       drawSeagull(sx, en.y, dir);
+    } else if (en.type === 'knife') {
+      drawKnifeGuy(sx, en.y, dir);
     } else if (en.type === 'banana') {
       drawBanana(sx, en.y, dir);
     } else if (en.type === 'bicycle') {
-      drawBicycle(sx, en.y, dir);
+      drawBicycle(sx, en.y, dir, currentLevel.id === 3 ? '#ffe28a' : '#444');
     }
   }
 }
@@ -1561,8 +1705,9 @@ function drawPlayer() {
 
 // ─── Draw HUD ─────────────────────────────────────────────────────────────────
 function drawHUD() {
+  const scoreColor = currentLevel.id === 3 ? '#000' : '#fff';
   // Score — center-top
-  drawText(`${t('score_label')}: ${score}`, CANVAS_W / 2, 22, 'bold 18px monospace', '#fff', 'center');
+  drawText(`${t('score_label')}: ${score}`, CANVAS_W / 2, 22, 'bold 18px monospace', scoreColor, 'center');
   // Per-level best score — right side
   const best = levelHighScores[currentLevel.id] || 0;
   drawText(`${t('best_label')}: ${best}`, CANVAS_W - 10, 22, 'bold 16px monospace', '#ffd700', 'right');
