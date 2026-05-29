@@ -1,0 +1,72 @@
+## 1. Browser Baseline (milestone: something visible in the browser)
+
+- [x] 1.1 Create `index.html` with a Canvas element (800x450), basic CSS reset, and a `<script>` tag pointing to `game.js`
+- [x] 1.2 Create `game.js` that draws a colored rectangle and a text label on the canvas (no game logic yet)
+- [x] 1.3 Verify it loads correctly at `localhost` in the browser
+- [x] 1.4 Start a WiFi-accessible server (`npx serve . -l 1010`) and verify it loads from another device on the same network
+
+## 2. Game Engine Core
+
+- [ ] 2.1 Implement `requestAnimationFrame` game loop with delta-time and 100ms cap
+- [ ] 2.2 Implement canvas scaling to fit viewport while preserving 16:9 aspect ratio
+- [ ] 2.3 Implement keyboard input handler tracking arrow keys, space, and Escape
+- [ ] 2.4 Implement gravity constant applied to player velocity each frame
+- [ ] 2.5 Implement AABB collision detection function for player vs platform rectangles
+- [ ] 2.6 Implement horizontal camera scroll following the player
+
+## 3. Player
+
+- [ ] 3.1 Create player object with position, velocity, size, lives, and facing direction
+- [ ] 3.2 Implement left/right movement with arrow keys updating player velocity
+- [ ] 3.3 Implement jump: apply upward velocity when space pressed and player is grounded
+- [ ] 3.4 Prevent double-jump by tracking `isOnGround` boolean
+- [ ] 3.5 Detect player falling below canvas bottom, deduct life, respawn at level start
+- [ ] 3.6 Trigger game-over screen when lives reach zero
+- [ ] 3.7 Draw player as pixel-art humanoid (colored rectangles) with left/right facing
+
+## 4. Level Design
+
+- [ ] 4.1 Define level data format: array of `{x, y, w, h, color, type}` objects
+- [ ] 4.2 Design and implement Level 1 platform layout (Rotterdam skyline tour, 3x viewport width)
+- [ ] 4.3 Draw ground and platforms from level data each frame (offset by camera)
+- [ ] 4.4 Draw layered background: sky gradient + simplified Rotterdam skyline shapes
+- [ ] 4.5 Place finish flag object at the end of the level
+- [ ] 4.6 Detect player touching finish flag, trigger level-complete flow
+
+## 5. Landmarks & Education
+
+- [ ] 5.1 Define landmark collectible data: `{x, y, name, fact}` for each of 6 landmarks
+- [ ] 5.2 Draw landmark collectibles as spinning stars/coins each frame
+- [ ] 5.3 Detect player collision with each collectible, mark as collected
+- [ ] 5.4 Show fact popup overlay on collection (landmark name + fact text, 3s auto-dismiss)
+- [ ] 5.5 Award 100 points per collectible and update HUD score
+
+## 6. Score System
+
+- [ ] 6.1 Implement score counter in game state, updated on collectible pickup and level complete
+- [ ] 6.2 Load high score from `localStorage` key `rotterdam-game-highscore` on game start
+- [ ] 6.3 Save new high score to `localStorage` when final score exceeds stored high score
+
+## 7. Audio
+
+- [ ] 7.1 Initialize Web Audio API `AudioContext` on first keypress (autoplay policy workaround)
+- [ ] 7.2 Implement `playJumpSound()` — short ascending oscillator blip
+- [ ] 7.3 Implement `playCollectSound()` — short ascending arpeggio (3 notes)
+- [ ] 7.4 Implement `playGameOverSound()` — descending wah-wah effect
+- [ ] 7.5 Implement looping background chiptune music (simple note sequence via oscillator)
+
+## 8. UI Screens
+
+- [ ] 8.1 Implement start screen: title art, high score, "Press SPACE to start" in retro font
+- [ ] 8.2 Implement HUD: score, lives (pixel hearts), level number drawn on canvas each frame
+- [ ] 8.3 Implement game-over screen: score, high score, "Press SPACE to retry"
+- [ ] 8.4 Implement win screen: congratulations message, final score, high score
+- [ ] 8.5 Implement pause overlay when Escape pressed, resume on Escape again
+
+## 9. Polish & Testing
+
+- [ ] 9.1 Test full playthrough: start → collect all landmarks → reach finish → win screen
+- [ ] 9.2 Test game over flow: lose all lives → game-over screen → retry works
+- [ ] 9.3 Test high score persists after page refresh
+- [ ] 9.4 Test game is reachable from another device on WiFi
+- [ ] 9.5 Tune jump feel, platform layout, and difficulty for fun in 5-minute demo
