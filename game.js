@@ -41,9 +41,13 @@ const STRINGS = {
     press_continue:  'Druk SPATIE om door te gaan',
     death_seagull:   'Kijk uit joh, teringmeeuw!',
     death_golf:      'Bro, die Golf denkt dat dit Zandvoort is!',
+    death_banana:    'Wie pleurt hier nou een banaan neer man!',
+    death_bicycle:   'Waar heb jij leren fietsen joh?!',
     death_fall:      'Je ken ook nergens normaal lopen hier\u2026',
     level1_name:     'Trekpleisters',
-    level1_desc:     'Een retro tour langs de iconen van Rotterdam.',
+    level1_desc:     'Een tour langs de iconen van Rotterdam.',
+    level2_name:     'Marathon',
+    level2_desc:     'Loop de 42km Rotterdam Marathon.',
   },
   EN: {
     subtitle:        'A retro run through the city',
@@ -65,9 +69,13 @@ const STRINGS = {
     press_continue:  'Press SPACE to continue',
     death_seagull:   'Watch out, bloody seagull!',
     death_golf:      'Bro, that Golf thinks this is Zandvoort!',
+    death_banana:    'Who throws a banana on the course?!',
+    death_bicycle:   'Where did you learn to ride a bike?!',
     death_fall:      'You really can\'t walk anywhere normal here\u2026',
     level1_name:     'Landmarks',
-    level1_desc:     'A retro tour past the icons of Rotterdam.',
+    level1_desc:     'A tour past the icons of Rotterdam.',
+    level2_name:     'Marathon',
+    level2_desc:     'Run the 42km Rotterdam Marathon.',
   },
 };
 
@@ -118,9 +126,9 @@ window.addEventListener('keydown', e => {
       }
     }
     else if (gameState === 'level_select') {
-      const unlockedLevels = LEVELS.filter(l => l.unlocked);
-      if (unlockedLevels.length > 0) {
-        startGame(unlockedLevels[selectedLevelIndex].id);
+      const level = LEVELS[selectedLevelIndex];
+      if (level && level.unlocked) {
+        startGame(level.id);
       }
     }
   }
@@ -130,11 +138,10 @@ window.addEventListener('keydown', e => {
     }
   }
   if (gameState === 'level_select') {
-    const unlockedLevels = LEVELS.filter(l => l.unlocked);
     if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
-      selectedLevelIndex = (selectedLevelIndex + 1) % unlockedLevels.length;
+      selectedLevelIndex = (selectedLevelIndex + 1) % LEVELS.length;
     } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
-      selectedLevelIndex = (selectedLevelIndex - 1 + unlockedLevels.length) % unlockedLevels.length;
+      selectedLevelIndex = (selectedLevelIndex - 1 + LEVELS.length) % LEVELS.length;
     }
   }
   e.preventDefault();
@@ -465,6 +472,75 @@ const LEVELS = [
       { x: 2700, y: 340 },
     ],
   },
+  {
+    id: 2,
+    name: 'Marathon',
+    description: 'Run the 42km Rotterdam Marathon',
+    unlocked: false,
+    width: 3500,
+    skyColor: RETRO.cream,
+    silhouetteColor: RETRO.olive,
+    platforms: [
+      // Ground sections — asphalt grey, same 5-gap structure as Level 1
+      { x: 0,    y: GROUND_Y, w: 600,  h: 50, color: '#666', type: 'ground' },
+      { x: 650,  y: GROUND_Y, w: 400,  h: 50, color: '#666', type: 'ground' },
+      { x: 1100, y: GROUND_Y, w: 500,  h: 50, color: '#666', type: 'ground' },
+      { x: 1650, y: GROUND_Y, w: 300,  h: 50, color: '#666', type: 'ground' },
+      { x: 2000, y: GROUND_Y, w: 800,  h: 50, color: '#666', type: 'ground' },
+      { x: 2780, y: GROUND_Y, w: 300,  h: 50, color: '#666', type: 'ground' },
+
+      // Elevated road sections — raised higher for a real jump challenge
+      // Section 1: bridge the gap at x 600-650
+      { x: 310,  y: 300, w: 120, h: 15, color: '#666', type: 'platform' },
+      { x: 460,  y: 290, w: 100, h: 15, color: '#666', type: 'platform' },
+      { x: 570,  y: 290, w: 90,  h: 15, color: '#666', type: 'platform' },
+
+      // Section 2: bridge the gap at x 1050-1100
+      { x: 700,  y: 300, w: 120, h: 15, color: '#666', type: 'platform' },
+      { x: 840,  y: 290, w: 120, h: 15, color: '#666', type: 'platform' },
+      { x: 970,  y: 290, w: 100, h: 15, color: '#666', type: 'platform' },
+
+      // Section 3: bridge the gap at x 1600-1650
+      { x: 1180, y: 300, w: 130, h: 15, color: '#666', type: 'platform' },
+      { x: 1330, y: 290, w: 130, h: 15, color: '#666', type: 'platform' },
+      { x: 1480, y: 290, w: 100, h: 15, color: '#666', type: 'platform' },
+
+      // Section 4: bridge the gap at x 1950-2000
+      { x: 1700, y: 300, w: 120, h: 15, color: '#666', type: 'platform' },
+      { x: 1840, y: 290, w: 120, h: 15, color: '#666', type: 'platform' },
+
+      // Section 5: approach to finish (after x 2780 ground section)
+      { x: 2620, y: 300, w: 120, h: 15, color: '#666', type: 'platform' },
+    ],
+    fences: [
+      // One fence on top of the last platform before each gap — player must jump over
+      { x: 648,  y: 290 - 30, w: 8, h: 30 }, // top of section 1 last platform (x:570+w:90)
+      { x: 1062, y: 290 - 30, w: 8, h: 30 }, // top of section 2 last platform (x:970+w:100)
+      { x: 1562, y: 290 - 30, w: 8, h: 30 }, // top of section 3 last platform (x:1480+w:100)
+      { x: 1952, y: 290 - 30, w: 8, h: 30 }, // top of section 4 last platform (x:1840+w:120)
+      { x: 2732, y: 300 - 30, w: 8, h: 30 }, // top of section 5 last platform (x:2620+w:120)
+    ],
+    finishFlag: { x: 2980, y: 300, w: 20, h: 100 },
+    landmarks: [
+      // Medal collectibles — 100 pts + fact popup
+      { x: 300,  y: 270, name: 'Marathon', fact: 'The Rotterdam Marathon was first organised in 1981.',                                                                                  factNL: 'De marathon werd voor het eerst georganiseerd in Rotterdam in 1981.' },
+      { x: 800,  y: 260, name: 'Marathon', fact: 'The flat and fast course means many runners achieve a personal record here.',                                                          factNL: 'Het parcours is vlak en snel, waardoor veel lopers hier hun persoonlijk record lopen.' },
+      { x: 1300, y: 260, name: 'Marathon', fact: 'Rick Slot ran the Rotterdam Marathon in 2:49:29 — not bad!',                                                                          factNL: 'Rick Slot liep de Rotterdam marathon in 2:49:29 (lekker gap!)' },
+      { x: 1800, y: 270, name: 'Marathon', fact: 'The race starts at the iconic Erasmus Bridge.',                                                                                       factNL: 'De race begint bij de iconische Erasmusbrug.' },
+      { x: 2480, y: 270, name: 'Marathon', fact: 'In terms of size and audience it is one of the biggest sporting events in the country.',                                              factNL: 'Het is qua omvang en publiek één van de grootste sportevents van het land.' },
+    ],
+    // Water cup collectibles — 25 pts, no popup
+    emptyStars: [
+      { x: 150,  y: 290 },
+      { x: 420,  y: 270 },
+      { x: 750,  y: 280 },
+      { x: 900,  y: 270 },
+      { x: 1200, y: 280 },
+      { x: 1430, y: 270 },
+      { x: 1750, y: 280 },
+      { x: 2100, y: 290 },
+    ],
+  },
 ];
 
 // Load per-level high scores from localStorage at startup
@@ -520,6 +596,8 @@ const DEATH_MESSAGE_KEYS = {
   seagull: 'death_seagull',
   golf:    'death_golf',
   fall:    'death_fall',
+  banana:  'death_banana',
+  bicycle: 'death_bicycle',
 };
 
 // ─── Enemy System ─────────────────────────────────────────────────────────────
@@ -603,6 +681,121 @@ function drawGolfCar(ex, ey, dir) {
   ctx.restore();
 }
 
+// Banana enemy sprite — within ~36x28px bounding box (enlarged for clarity)
+function drawBanana(ex, ey, dir) {
+  ctx.save();
+  ctx.translate(ex + 18, ey + 14);
+  ctx.scale(dir, 1);
+
+  // Dark brown outline — drawn slightly larger underneath the yellow body
+  const outlineRows = [
+    [-4, 8,  -13, 4],
+    [-7, 14, -10, 4],
+    [-9, 18,  -7, 4],
+    [-9, 18,  -3, 4],
+    [-7, 14,   1, 4],
+    [-4, 10,   5, 4],
+    [-1,  6,   8, 4],
+  ];
+  ctx.fillStyle = '#5C2E00';
+  for (const [dx, w, dy, h] of outlineRows) {
+    ctx.fillRect(dx, dy, w, h);
+  }
+
+  // Main banana body — bright yellow, crescent shape
+  const rows = [
+    [-3, 6,  -12, 3],
+    [-6, 12,  -9, 3],
+    [-8, 16,  -6, 3],
+    [-8, 16,  -3, 3],
+    [-6, 12,   0, 3],
+    [-3, 8,    3, 3],
+    [ 0, 4,    6, 3],
+  ];
+  ctx.fillStyle = '#FFE135'; // bright banana yellow
+  for (const [dx, w, dy, h] of rows) {
+    ctx.fillRect(dx, dy, w, h);
+  }
+
+  // Brown tips — top and bottom
+  ctx.fillStyle = '#5C2E00';
+  ctx.fillRect(-3, -14, 6, 3); // top tip
+  ctx.fillRect( 1,   8, 4, 3); // bottom tip
+
+  // Inner curve shadow stripe (gives 3D / curved feel)
+  ctx.fillStyle = '#D4A000';
+  ctx.fillRect(-2, -8, 3, 15);
+
+  // Highlight stripe for extra pop
+  ctx.fillStyle = '#FFF176';
+  ctx.fillRect(-5, -9, 2, 12);
+
+  ctx.restore();
+}
+
+// Bicycle enemy sprite — within ~36x20px bounding box
+function drawBicycle(ex, ey, dir) {
+  ctx.save();
+  ctx.translate(ex + 18, ey + 10);
+  ctx.scale(dir, 1);
+
+  const wheelY = 6; // wheel centre Y relative to translate origin
+  const rearX  = -11;
+  const frontX =  11;
+
+  // Wheels
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(rearX,  wheelY, 7, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(frontX, wheelY, 7, 0, Math.PI * 2); ctx.stroke();
+  // Wheel hubs
+  ctx.fillStyle = '#555';
+  ctx.beginPath(); ctx.arc(rearX,  wheelY, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(frontX, wheelY, 2, 0, Math.PI * 2); ctx.fill();
+
+  // Frame — triangle: rear-axle → seat post → front-fork
+  const seatX = -2, seatY = -5;
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(rearX,  wheelY);  // rear axle
+  ctx.lineTo(seatX,  seatY);   // seat tube top
+  ctx.lineTo(frontX, wheelY);  // front axle
+  ctx.stroke();
+  // Seat stay (rear axle → seat)
+  ctx.beginPath();
+  ctx.moveTo(rearX, wheelY);
+  ctx.lineTo(seatX, seatY);
+  ctx.stroke();
+  // Top tube (seat → handlebar)
+  const handleX = 8, handleY = -4;
+  ctx.beginPath();
+  ctx.moveTo(seatX, seatY);
+  ctx.lineTo(handleX, handleY);
+  ctx.stroke();
+  // Front fork
+  ctx.beginPath();
+  ctx.moveTo(handleX, handleY);
+  ctx.lineTo(frontX, wheelY);
+  ctx.stroke();
+
+  // Handlebar — small horizontal nub
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(handleX - 2, handleY - 3);
+  ctx.lineTo(handleX + 3, handleY - 3);
+  ctx.stroke();
+
+  // Seat — short horizontal bar
+  ctx.beginPath();
+  ctx.moveTo(seatX - 3, seatY - 1);
+  ctx.lineTo(seatX + 3, seatY - 1);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 // Seagull enemy sprite — within ~24×18px bounding box
 function drawSeagull(ex, ey, dir) {
   ctx.save();
@@ -675,20 +868,37 @@ function drawSeagull(ex, ey, dir) {
   ctx.restore();
 }
 
-// Spawn data + resetEnemies
+// Spawn data + resetEnemies — level-aware
 function resetEnemies() {
-  const golfCars = [
-    { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50 },
-    { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50 },
-    { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50 },
-  ];
-  const seagulls = [
-    { x: 200,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 100,  patrolMax: 250,  points: 30 },
-    { x: 700,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 650,  patrolMax: 1010, points: 30 },
-    { x: 1700, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 1650, patrolMax: 1900, points: 30 },
-    { x: 2500, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 2400, patrolMax: 2750, points: 30 },
-  ];
-  enemies = [...golfCars, ...seagulls];
+  if (currentLevel.id === 2) {
+    // Level 2: bananas (mirror seagull positions) + bicycles (mirror car positions)
+    const bananas = [
+      { x: 200,  y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 100,  patrolMax: 250,  points: 30, deathMsg: 'banana' },
+      { x: 700,  y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 650,  patrolMax: 1010, points: 30, deathMsg: 'banana' },
+      { x: 1700, y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 1650, patrolMax: 1900, points: 30, deathMsg: 'banana' },
+      { x: 2500, y: GROUND_Y - 28, w: 36, h: 28, vx: 60,  type: 'banana',  alive: true, patrolMin: 2400, patrolMax: 2750, points: 30, deathMsg: 'banana' },
+    ];
+    const bicycles = [
+      { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50, deathMsg: 'bicycle' },
+      { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50, deathMsg: 'bicycle' },
+      { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'bicycle', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50, deathMsg: 'bicycle' },
+    ];
+    enemies = [...bananas, ...bicycles];
+  } else {
+    // Level 1: seagulls + VW Golf cars (original behaviour)
+    const golfCars = [
+      { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50 },
+      { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50 },
+      { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50 },
+    ];
+    const seagulls = [
+      { x: 200,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 100,  patrolMax: 250,  points: 30 },
+      { x: 700,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 650,  patrolMax: 1010, points: 30 },
+      { x: 1700, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 1650, patrolMax: 1900, points: 30 },
+      { x: 2500, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 2400, patrolMax: 2750, points: 30 },
+    ];
+    enemies = [...golfCars, ...seagulls];
+  }
 }
 
 // ─── Game Init ────────────────────────────────────────────────────────────────
@@ -783,6 +993,9 @@ function update(dt) {
     }
   }
 
+  // Fence collision
+  updateFences();
+
   // Fall below canvas
   if (player.y > CANVAS_H + 50) {
     player.lives--;
@@ -828,7 +1041,7 @@ function update(dt) {
     } else {
       // Side or bottom hit — lose a life
       player.lives--;
-      deathCause = en.type === 'golf' ? 'golf' : 'seagull';
+      deathCause = en.type;
       if (player.lives <= 0) {
         playGameOverSound();
         saveHighScore();
@@ -864,6 +1077,11 @@ function update(dt) {
   if (rectsOverlap(player.x, player.y, player.w, player.h, ff.x, ff.y, ff.w, ff.h)) {
     score += 500; // level complete bonus
     saveHighScore();
+    // Unlock next level
+    const nextLevel = LEVELS.find(l => l.id === currentLevel.id + 1);
+    if (nextLevel && !nextLevel.unlocked) {
+      nextLevel.unlocked = true;
+    }
     gameState = 'win';
     return;
   }
@@ -1067,6 +1285,60 @@ function drawPlatforms() {
     drawRect(sx, plat.y, plat.w, plat.h, plat.color);
     // Dark edge
     drawRect(sx, plat.y, plat.w, 3, 'rgba(0,0,0,0.3)');
+    // Lane markings on Level 2 elevated road sections
+    if (currentLevel.id === 2 && plat.type === 'platform') {
+      ctx.fillStyle = '#ffffff';
+      const dashW = 4, dashH = 2, dashSpacing = 20;
+      const markY = plat.y + 5; // a few pixels below the top edge
+      for (let dx = 10; dx < plat.w - 10; dx += dashSpacing) {
+        ctx.fillRect(sx + dx, markY, dashW, dashH);
+      }
+    }
+  }
+}
+
+
+// ─── Draw Fences ──────────────────────────────────────────────────────────────
+function drawFences() {
+  if (!currentLevel.fences || currentLevel.fences.length === 0) return;
+  for (const fence of currentLevel.fences) {
+    const sx = fence.x - cameraX;
+    if (sx + fence.w < 0 || sx > CANVAS_W) continue;
+    // Main fence body — brown wood
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(sx, fence.y, fence.w, fence.h);
+    // Dark left edge for depth
+    ctx.fillStyle = '#5C2E00';
+    ctx.fillRect(sx, fence.y, 2, fence.h);
+    // Light right edge highlight
+    ctx.fillStyle = '#A0522D';
+    ctx.fillRect(sx + fence.w - 2, fence.y, 2, fence.h);
+    // Horizontal planks
+    ctx.fillStyle = '#5C2E00';
+    ctx.fillRect(sx, fence.y + Math.floor(fence.h * 0.33), fence.w, 2);
+    ctx.fillRect(sx, fence.y + Math.floor(fence.h * 0.66), fence.w, 2);
+  }
+}
+
+// ─── Update Fences (collision — bounce back, no life loss) ────────────────────
+function updateFences() {
+  if (!currentLevel.fences || currentLevel.fences.length === 0) return;
+  for (const fence of currentLevel.fences) {
+    if (!rectsOverlap(player.x, player.y, player.w, player.h, fence.x, fence.y, fence.w, fence.h)) continue;
+    // Only collide if player bottom is below fence top (i.e. not jumping cleanly over)
+    const playerBottom = player.y + player.h;
+    if (playerBottom <= fence.y) continue;
+    // Determine horizontal overlap direction and push back
+    const overlapFromLeft  = (player.x + player.w) - fence.x;
+    const overlapFromRight = (fence.x + fence.w) - player.x;
+    if (overlapFromLeft < overlapFromRight) {
+      // Player came from left — push back left
+      player.x = fence.x - player.w;
+    } else {
+      // Player came from right — push back right
+      player.x = fence.x + fence.w;
+    }
+    player.vx = 0;
   }
 }
 
@@ -1106,6 +1378,77 @@ function drawFinishFlag(time) {
   ctx.strokeRect(flagX + 0.5, flagY + 0.5, flagW - 1, flagH - 1);
 }
 
+// ─── Medal and Water Cup Draw Helpers (Level 2 collectibles) ─────────────────
+function drawMedal(cx, cy) {
+  // Gold circle
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fill();
+  // Dark outline
+  ctx.strokeStyle = '#B8860B';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.stroke();
+  // Inner highlight ring
+  ctx.strokeStyle = '#FFEC6E';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  // Star detail inside medal
+  ctx.fillStyle = '#B8860B';
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? 4 : 2;
+    const a = (i * Math.PI) / 5 - Math.PI / 2;
+    const mx = cx + Math.cos(a) * r;
+    const my = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(mx, my);
+    else ctx.lineTo(mx, my);
+  }
+  ctx.closePath();
+  ctx.fill();
+  // Ribbon below medal
+  ctx.fillStyle = '#CC0000';
+  ctx.fillRect(cx - 4, cy + 9, 8, 10);
+  // Ribbon knot
+  ctx.fillStyle = '#AA0000';
+  ctx.fillRect(cx - 2, cy + 9, 4, 3);
+}
+
+function drawWaterCup(cx, cy) {
+  // Trapezoid cup — wider at top, narrower at bottom
+  ctx.fillStyle = '#f1faee'; // white cup body
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy - 7); // top-left
+  ctx.lineTo(cx + 6, cy - 7); // top-right
+  ctx.lineTo(cx + 4, cy + 7); // bottom-right
+  ctx.lineTo(cx - 4, cy + 7); // bottom-left
+  ctx.closePath();
+  ctx.fill();
+  // Blue stripe near top
+  ctx.fillStyle = '#457b9d';
+  ctx.beginPath();
+  ctx.moveTo(cx - 6,   cy - 7); // top-left
+  ctx.lineTo(cx + 6,   cy - 7); // top-right
+  ctx.lineTo(cx + 5.5, cy - 4); // stripe bottom-right
+  ctx.lineTo(cx - 5.5, cy - 4); // stripe bottom-left
+  ctx.closePath();
+  ctx.fill();
+  // Thin dark outline
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy - 7);
+  ctx.lineTo(cx + 6, cy - 7);
+  ctx.lineTo(cx + 4, cy + 7);
+  ctx.lineTo(cx - 4, cy + 7);
+  ctx.closePath();
+  ctx.stroke();
+}
+
 // ─── Draw Landmarks ───────────────────────────────────────────────────────────
 function drawStar(cx, cy, angle) {
   const outerR = 14;
@@ -1130,8 +1473,25 @@ function drawLandmarks() {
     const sx = lm.x - cameraX;
     if (sx < -40 || sx > CANVAS_W + 40) continue;
     ctx.save();
-    ctx.fillStyle = RETRO.gold;
-    drawStar(sx, lm.y, lm.animAngle);
+    if (lm.isFact) {
+      if (currentLevel.id === 2) {
+        // Level 2: draw medal for fact collectibles
+        drawMedal(sx, lm.y);
+      } else {
+        // Level 1: draw spinning gold star
+        ctx.fillStyle = RETRO.gold;
+        drawStar(sx, lm.y, lm.animAngle);
+      }
+    } else {
+      if (currentLevel.id === 2) {
+        // Level 2: draw water cup for bonus collectibles
+        drawWaterCup(sx, lm.y);
+      } else {
+        // Level 1: draw spinning gold star
+        ctx.fillStyle = RETRO.gold;
+        drawStar(sx, lm.y, lm.animAngle);
+      }
+    }
     ctx.restore();
   }
 }
@@ -1147,6 +1507,10 @@ function drawEnemies() {
       drawGolfCar(sx, en.y, dir);
     } else if (en.type === 'seagull') {
       drawSeagull(sx, en.y, dir);
+    } else if (en.type === 'banana') {
+      drawBanana(sx, en.y, dir);
+    } else if (en.type === 'bicycle') {
+      drawBicycle(sx, en.y, dir);
     }
   }
 }
@@ -1280,8 +1644,6 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
 
 // ─── Draw Level Select Screen ─────────────────────────────────────────────────
 function drawLevelSelectScreen() {
-  const unlockedLevels = LEVELS.filter(l => l.unlocked);
-
   // Background — RETRO palette
   ctx.fillStyle = RETRO.olive;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -1289,47 +1651,77 @@ function drawLevelSelectScreen() {
   // Title
   drawText(t('select_level'), CANVAS_W / 2, 80, 'bold 40px monospace', RETRO.orange, 'center');
 
-  // Level cards
+  // Level cards — show ALL levels, locked ones dimmed
   const cardW = 200;
   const cardH = 120;
   const cardSpacing = 40;
-  const totalW = unlockedLevels.length * cardW + (unlockedLevels.length - 1) * cardSpacing;
+  const totalW = LEVELS.length * cardW + (LEVELS.length - 1) * cardSpacing;
   const startX = (CANVAS_W - totalW) / 2;
   const cardY = CANVAS_H / 2 - cardH / 2;
 
-  for (let i = 0; i < unlockedLevels.length; i++) {
-    const level = unlockedLevels[i];
+  for (let i = 0; i < LEVELS.length; i++) {
+    const level = LEVELS[i];
     const cx = startX + i * (cardW + cardSpacing);
     const isSelected = i === selectedLevelIndex;
+    const isLocked = !level.unlocked;
 
     // Card background
-    ctx.fillStyle = isSelected ? 'rgba(251,46,1,0.25)' : 'rgba(0,0,0,0.45)';
-    ctx.strokeStyle = isSelected ? RETRO.orange : RETRO.mint;
+    if (isLocked) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.strokeStyle = '#555';
+    } else {
+      ctx.fillStyle = isSelected ? 'rgba(251,46,1,0.25)' : 'rgba(0,0,0,0.45)';
+      ctx.strokeStyle = isSelected ? RETRO.orange : RETRO.mint;
+    }
     ctx.lineWidth = isSelected ? 3 : 1;
     ctx.beginPath();
     ctx.roundRect(cx, cardY, cardW, cardH, 8);
     ctx.fill();
     ctx.stroke();
 
-    // Level name
-    drawText(t(`level${level.id}_name`), cx + cardW / 2, cardY + 36, 'bold 16px monospace', isSelected ? RETRO.orange : '#fff', 'center');
+    if (isLocked) {
+      // Dim overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.roundRect(cx, cardY, cardW, cardH, 8);
+      ctx.fill();
 
-    // Level description (wrapped, centered)
-    ctx.font = '11px monospace';
-    ctx.fillStyle = RETRO.gold;
-    ctx.textAlign = 'center';
-    wrapText(t(`level${level.id}_desc`), cx + cardW / 2, cardY + 58, cardW - 20, 14);
+      // Level name (greyed)
+      drawText(t(`level${level.id}_name`), cx + cardW / 2, cardY + 36, 'bold 16px monospace', '#666', 'center');
 
-    // Best score
-    const best = levelHighScores[level.id] || 0;
-    drawText(`${t('best_label')}: ${best}`, cx + cardW / 2, cardY + cardH - 14, '13px monospace', RETRO.gold, 'center');
+      // Lock icon (pixel art padlock)
+      const lx = cx + cardW / 2, ly = cardY + cardH / 2 + 10;
+      ctx.fillStyle = '#888';
+      ctx.fillRect(lx - 8, ly - 2, 16, 12);   // body
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(lx, ly - 2, 7, Math.PI, 0);     // shackle arc
+      ctx.stroke();
+      ctx.fillStyle = RETRO.olive;
+      ctx.fillRect(lx - 2, ly + 2, 4, 4);     // keyhole
+    } else {
+      // Level name
+      drawText(t(`level${level.id}_name`), cx + cardW / 2, cardY + 36, 'bold 16px monospace', isSelected ? RETRO.orange : '#fff', 'center');
+
+      // Level description (wrapped, centered)
+      ctx.font = '11px monospace';
+      ctx.fillStyle = RETRO.gold;
+      ctx.textAlign = 'center';
+      wrapText(t(`level${level.id}_desc`), cx + cardW / 2, cardY + 58, cardW - 20, 14);
+
+      // Best score
+      const best = levelHighScores[level.id] || 0;
+      drawText(`${t('best_label')}: ${best}`, cx + cardW / 2, cardY + cardH - 14, '13px monospace', RETRO.gold, 'center');
+    }
   }
 
   // Controls hint
   drawText(t('controls_select'), CANVAS_W / 2, CANVAS_H - 30, '14px monospace', '#adb5bd', 'center');
 
-  // Blinking prompt
-  if (unlockedLevels.length > 0 && Math.floor(Date.now() / 500) % 2 === 0) {
+  // Blinking prompt — only if selected level is unlocked
+  const selectedLevel = LEVELS[selectedLevelIndex];
+  if (selectedLevel && selectedLevel.unlocked && Math.floor(Date.now() / 500) % 2 === 0) {
     drawText(t('press_start'), CANVAS_W / 2, CANVAS_H - 60, 'bold 18px monospace', '#fff', 'center');
   }
 }
@@ -1471,6 +1863,7 @@ function render(time) {
   drawBackground();
   drawBridge();
   drawPlatforms();
+  drawFences();
   drawFinishFlag(time / 1000);
   drawLandmarks();
   drawEnemies();
