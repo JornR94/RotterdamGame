@@ -19,6 +19,64 @@ const RETRO = {
   cream:    '#fffeb3', // pale cream — star accent / sky horizon
 };
 
+// ─── Internationalisation ─────────────────────────────────────────────────────
+const STRINGS = {
+  NL: {
+    subtitle:        'Een retro run door de stad',
+    press_start:     'DRUK SPATIE OM TE STARTEN',
+    controls_start:  '← → Bewegen    SPATIE Springen    ESC Pauze',
+    select_level:    'KIES LEVEL',
+    controls_select: '← → Kiezen    SPATIE Starten',
+    game_over:       'GAME OVER',
+    press_return:    'DRUK SPATIE OM TERUG TE GAAN',
+    win_message:     'LEKKER BEZIG, GAP!',
+    new_high_score:  'NIEUW RECORD!',
+    paused:          'GEPAUZEERD',
+    resume:          'Druk ESC om verder te spelen',
+    score_label:     'SCORE',
+    best_label:      'BESTE',
+    final_score:     'SCORE',
+    high_score:      'HIGH SCORE',
+    lang_toggle:     '← TAAL: NL →',
+    press_continue:  'Druk SPATIE om door te gaan',
+    death_seagull:   'Kijk uit joh, teringmeeuw!',
+    death_golf:      'Bro, die Golf denkt dat dit Zandvoort is!',
+    death_fall:      'Je ken ook nergens normaal lopen hier\u2026',
+    level1_name:     'Landmarks',
+    level1_desc:     'Een retro tour langs de iconen van Rotterdam.',
+  },
+  EN: {
+    subtitle:        'A retro run through the city',
+    press_start:     'PRESS SPACE TO START',
+    controls_start:  '← → Move    SPACE Jump    ESC Pause',
+    select_level:    'SELECT LEVEL',
+    controls_select: '← → Select    SPACE Start',
+    game_over:       'GAME OVER',
+    press_return:    'PRESS SPACE TO RETURN',
+    win_message:     'WELL DONE!',
+    new_high_score:  'NEW HIGH SCORE!',
+    paused:          'PAUSED',
+    resume:          'Press ESC to resume',
+    score_label:     'SCORE',
+    best_label:      'BEST',
+    final_score:     'FINAL SCORE',
+    high_score:      'HIGH SCORE',
+    lang_toggle:     '← LANGUAGE: EN →',
+    press_continue:  'Press SPACE to continue',
+    death_seagull:   'Watch out, bloody seagull!',
+    death_golf:      'Bro, that Golf thinks this is Zandvoort!',
+    death_fall:      'You really can\'t walk anywhere normal here\u2026',
+    level1_name:     'Landmarks',
+    level1_desc:     'A retro tour past the icons of Rotterdam.',
+  },
+};
+
+let currentLang = localStorage.getItem('rotterdam-game-lang') || 'NL';
+
+function t(key) {
+  return (STRINGS[currentLang] && STRINGS[currentLang][key]) || STRINGS['EN'][key] || key;
+}
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -48,7 +106,7 @@ window.addEventListener('keydown', e => {
     else if (gameState === 'paused') { gameState = 'playing'; }
   }
   if (e.code === 'Space') {
-    if (gameState === 'start') { gameState = 'level_select'; }
+    if (gameState === 'start') { gameState = 'level_select'; localStorage.setItem('rotterdam-game-lang', currentLang); }
     else if (gameState === 'gameover') { gameState = 'level_select'; }
     else if (gameState === 'win') { gameState = 'level_select'; }
     else if (gameState === 'death_message') {
@@ -64,6 +122,11 @@ window.addEventListener('keydown', e => {
       if (unlockedLevels.length > 0) {
         startGame(unlockedLevels[selectedLevelIndex].id);
       }
+    }
+  }
+  if (gameState === 'start') {
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      currentLang = currentLang === 'NL' ? 'EN' : 'NL';
     }
   }
   if (gameState === 'level_select') {
@@ -381,12 +444,12 @@ const LEVELS = [
     ],
     finishFlag: { x: 2980, y: 300, w: 20, h: 100 },
     landmarks: [
-      { x: 520,  y: 180, name: 'Erasmusbrug',    fact: 'The Erasmus Bridge (1996) is 802 metres long and is also known as "The Swan".' },
-      { x: 800,  y: 130, name: 'Euromast',        fact: 'The Euromast (185m) is the tallest building in Rotterdam, built in 1960.' },
-      { x: 1200, y: 200, name: 'Markthal',        fact: 'The Market Hall (2014) contains 228 apartments and the largest artwork in the Netherlands on its ceiling.' },
-      { x: 1490, y: 210, name: 'Kubuswoningen',   fact: 'The Cube Houses were designed by Piet Blom and are tilted at 45 degrees.' },
-      { x: 1780, y: 200, name: 'De Kuip',         fact: 'De Kuip (Stadion Feijenoord) has a capacity of 51,117 spectators.' },
-      { x: 2480, y: 220, name: 'Haven Rotterdam', fact: 'The port of Rotterdam is the largest port in Europe.' },
+      { x: 520,  y: 180, name: 'Erasmusbrug',    fact: 'The Erasmus Bridge (1996) is 802 metres long and is also known as "The Swan".',                                                            factNL: 'De Erasmusbrug (1996) is 802 meter lang en staat ook wel bekend als "De Zwaan".' },
+      { x: 800,  y: 130, name: 'Euromast',        fact: 'The Euromast (185m) is the tallest building in Rotterdam, built in 1960.',                                                                factNL: 'De Euromast (185m) is het hoogste gebouw van Rotterdam, gebouwd in 1960.' },
+      { x: 1200, y: 200, name: 'Markthal',        fact: 'The Market Hall (2014) contains 228 apartments and the largest artwork in the Netherlands on its ceiling.',                               factNL: 'De Markthal (2014) bevat 228 appartementen en heeft het grootste kunstwerk van Nederland op het plafond.' },
+      { x: 1490, y: 210, name: 'Kubuswoningen',   fact: 'The Cube Houses were designed by Piet Blom and are tilted at 45 degrees.',                                                               factNL: 'De Kubuswoningen zijn ontworpen door Piet Blom en staan 45 graden gekanteld.' },
+      { x: 1780, y: 200, name: 'De Kuip',         fact: 'De Kuip (Stadion Feijenoord) has a capacity of 51,117 spectators.',                                                                      factNL: 'De Kuip (Stadion Feijenoord) heeft een capaciteit van 51.117 toeschouwers.' },
+      { x: 2480, y: 220, name: 'Haven Rotterdam', fact: 'The port of Rotterdam is the largest port in Europe.',                                                                                    factNL: 'De haven van Rotterdam is de grootste haven van Europa.' },
     ],
     // Stars are kept away from ground gaps (gaps at x≈600-650, 1050-1100, 1600-1650, 1950-2000)
     emptyStars: [
@@ -453,10 +516,10 @@ let popup = null; // { name, fact, timer }
 // ─── Death message state ──────────────────────────────────────────────────────
 let deathCause = null;   // 'seagull' | 'golf' | 'fall'
 let deathIsGameOver = false;
-const DEATH_MESSAGES = {
-  seagull: 'Kijk uit joh, teringmeeuw!',
-  golf:    'Bro, die Golf denkt dat dit Zandvoort is!',
-  fall:    'Je ken ook nergens normaal lopen hier\u2026',
+const DEATH_MESSAGE_KEYS = {
+  seagull: 'death_seagull',
+  golf:    'death_golf',
+  fall:    'death_fall',
 };
 
 // ─── Enemy System ─────────────────────────────────────────────────────────────
@@ -788,7 +851,7 @@ function update(dt) {
       playCollectSound();
       if (lm.isFact) {
         score += 100; // fact star: 100 pts + popup
-        popup = { name: lm.name, fact: lm.fact, timer: 4 };
+        popup = { name: lm.name, fact: currentLang === 'NL' ? lm.factNL : lm.fact, timer: 4 };
       } else {
         score += 25; // empty star: 25 pts, no popup
       }
@@ -1135,10 +1198,10 @@ function drawPlayer() {
 // ─── Draw HUD ─────────────────────────────────────────────────────────────────
 function drawHUD() {
   // Score — center-top
-  drawText(`SCORE: ${score}`, CANVAS_W / 2, 22, 'bold 18px monospace', '#fff', 'center');
+  drawText(`${t('score_label')}: ${score}`, CANVAS_W / 2, 22, 'bold 18px monospace', '#fff', 'center');
   // Per-level best score — right side
   const best = levelHighScores[currentLevel.id] || 0;
-  drawText(`BEST: ${best}`, CANVAS_W - 10, 22, 'bold 16px monospace', '#ffd700', 'right');
+  drawText(`${t('best_label')}: ${best}`, CANVAS_W - 10, 22, 'bold 16px monospace', '#ffd700', 'right');
   // Lives (pixel hearts)
   for (let i = 0; i < player.lives; i++) {
     drawHeart(20 + i * 28, 14, PAL.red);
@@ -1219,15 +1282,12 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
 function drawLevelSelectScreen() {
   const unlockedLevels = LEVELS.filter(l => l.unlocked);
 
-  // Background gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  grad.addColorStop(0, '#1d3557');
-  grad.addColorStop(1, '#457b9d');
-  ctx.fillStyle = grad;
+  // Background — RETRO palette
+  ctx.fillStyle = RETRO.olive;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
   // Title
-  drawText('SELECT LEVEL', CANVAS_W / 2, 80, 'bold 40px monospace', '#ffd700', 'center');
+  drawText(t('select_level'), CANVAS_W / 2, 80, 'bold 40px monospace', RETRO.orange, 'center');
 
   // Level cards
   const cardW = 200;
@@ -1243,8 +1303,8 @@ function drawLevelSelectScreen() {
     const isSelected = i === selectedLevelIndex;
 
     // Card background
-    ctx.fillStyle = isSelected ? 'rgba(255,215,0,0.25)' : 'rgba(0,0,0,0.45)';
-    ctx.strokeStyle = isSelected ? '#ffd700' : '#457b9d';
+    ctx.fillStyle = isSelected ? 'rgba(251,46,1,0.25)' : 'rgba(0,0,0,0.45)';
+    ctx.strokeStyle = isSelected ? RETRO.orange : RETRO.mint;
     ctx.lineWidth = isSelected ? 3 : 1;
     ctx.beginPath();
     ctx.roundRect(cx, cardY, cardW, cardH, 8);
@@ -1252,86 +1312,82 @@ function drawLevelSelectScreen() {
     ctx.stroke();
 
     // Level name
-    drawText(level.name, cx + cardW / 2, cardY + 36, 'bold 16px monospace', isSelected ? '#ffd700' : '#fff', 'center');
+    drawText(t(`level${level.id}_name`), cx + cardW / 2, cardY + 36, 'bold 16px monospace', isSelected ? RETRO.orange : '#fff', 'center');
 
     // Level description (wrapped, centered)
     ctx.font = '11px monospace';
-    ctx.fillStyle = '#a8dadc';
+    ctx.fillStyle = RETRO.gold;
     ctx.textAlign = 'center';
-    wrapText(level.description, cx + cardW / 2, cardY + 58, cardW - 20, 14);
+    wrapText(t(`level${level.id}_desc`), cx + cardW / 2, cardY + 58, cardW - 20, 14);
 
     // Best score
     const best = levelHighScores[level.id] || 0;
-    drawText(`BEST: ${best}`, cx + cardW / 2, cardY + cardH - 14, '13px monospace', '#ffd700', 'center');
+    drawText(`${t('best_label')}: ${best}`, cx + cardW / 2, cardY + cardH - 14, '13px monospace', RETRO.gold, 'center');
   }
 
   // Controls hint
-  drawText('← → Select    SPACE Start', CANVAS_W / 2, CANVAS_H - 30, '14px monospace', '#adb5bd', 'center');
+  drawText(t('controls_select'), CANVAS_W / 2, CANVAS_H - 30, '14px monospace', '#adb5bd', 'center');
 
   // Blinking prompt
   if (unlockedLevels.length > 0 && Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO START', CANVAS_W / 2, CANVAS_H - 60, 'bold 18px monospace', '#fff', 'center');
+    drawText(t('press_start'), CANVAS_W / 2, CANVAS_H - 60, 'bold 18px monospace', '#fff', 'center');
   }
 }
 
 // ─── Draw Start Screen ────────────────────────────────────────────────────────
 function drawStartScreen() {
-  // Background
-  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  grad.addColorStop(0, '#1d3557');
-  grad.addColorStop(1, '#457b9d');
-  ctx.fillStyle = grad;
+  // Background — RETRO palette
+  ctx.fillStyle = RETRO.olive;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // Title
-  drawText('ROTTERDAM', CANVAS_W / 2, 130, 'bold 64px monospace', '#ffd700', 'center');
-  drawText('RUNNER', CANVAS_W / 2, 200, 'bold 64px monospace', '#e63946', 'center');
+  // Title — single RETRO color
+  drawText('ROTTERDAM', CANVAS_W / 2, 130, 'bold 64px monospace', RETRO.orange, 'center');
+  drawText('RUNNER', CANVAS_W / 2, 200, 'bold 64px monospace', RETRO.orange, 'center');
 
   // Subtitle
-  drawText('A retro run through the city', CANVAS_W / 2, 250, '18px monospace', '#a8dadc', 'center');
+  drawText(t('subtitle'), CANVAS_W / 2, 250, '18px monospace', RETRO.gold, 'center');
+
+  // Language toggle
+  drawText(t('lang_toggle'), CANVAS_W / 2, 310, '16px monospace', RETRO.gold, 'center');
 
   // Prompt (blinking)
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO START', CANVAS_W / 2, 360, 'bold 22px monospace', '#fff', 'center');
+    drawText(t('press_start'), CANVAS_W / 2, 370, 'bold 22px monospace', '#fff', 'center');
   }
 
   // Controls
-  drawText('← → Move    SPACE Jump    ESC Pause', CANVAS_W / 2, 410, '14px monospace', '#adb5bd', 'center');
+  drawText(t('controls_start'), CANVAS_W / 2, 420, '14px monospace', '#adb5bd', 'center');
 }
 
 // ─── Draw Game Over Screen ────────────────────────────────────────────────────
 function drawGameOverScreen() {
-  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillStyle = RETRO.olive;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  drawText('GAME OVER', CANVAS_W / 2, 160, 'bold 60px monospace', '#e63946', 'center');
-  drawText(`SCORE: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#fff', 'center');
+  drawText(t('game_over'), CANVAS_W / 2, 160, 'bold 60px monospace', RETRO.orange, 'center');
+  drawText(`${t('score_label')}: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#fff', 'center');
   const best = currentLevel ? (levelHighScores[currentLevel.id] || 0) : 0;
-  drawText(`HIGH SCORE: ${best}`, CANVAS_W / 2, 285, 'bold 22px monospace', '#ffd700', 'center');
+  drawText(`${t('high_score')}: ${best}`, CANVAS_W / 2, 285, 'bold 22px monospace', RETRO.gold, 'center');
 
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO RETURN', CANVAS_W / 2, 350, 'bold 22px monospace', '#a8dadc', 'center');
+    drawText(t('press_return'), CANVAS_W / 2, 350, 'bold 22px monospace', '#fff', 'center');
   }
 }
 
 // ─── Draw Win Screen ──────────────────────────────────────────────────────────
 function drawWinScreen() {
-  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  grad.addColorStop(0, '#1d3557');
-  grad.addColorStop(0.5, '#457b9d');
-  grad.addColorStop(1, '#6fcb9f');
-  ctx.fillStyle = grad;
+  ctx.fillStyle = RETRO.olive;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  drawText('LEKKER BEZIG, GAP!', CANVAS_W / 2, 150, 'bold 38px monospace', '#ffe28a', 'center');
-  drawText(`FINAL SCORE: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#ffe28a', 'center');
+  drawText(t('win_message'), CANVAS_W / 2, 150, 'bold 38px monospace', RETRO.gold, 'center');
+  drawText(`${t('final_score')}: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', RETRO.gold, 'center');
   const best = currentLevel ? (levelHighScores[currentLevel.id] || 0) : 0;
-  drawText(`HIGH SCORE: ${best}`, CANVAS_W / 2, 290, 'bold 22px monospace', '#a8dadc', 'center');
+  drawText(`${t('high_score')}: ${best}`, CANVAS_W / 2, 290, 'bold 22px monospace', RETRO.mint, 'center');
   if (score >= best && score > 0) {
-    drawText('NEW HIGH SCORE!', CANVAS_W / 2, 340, 'bold 24px monospace', '#e63946', 'center');
+    drawText(t('new_high_score'), CANVAS_W / 2, 340, 'bold 24px monospace', RETRO.orange, 'center');
   }
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO RETURN', CANVAS_W / 2, 400, 'bold 20px monospace', '#f1faee', 'center');
+    drawText(t('press_return'), CANVAS_W / 2, 400, 'bold 20px monospace', '#fff', 'center');
   }
 }
 
@@ -1339,15 +1395,15 @@ function drawWinScreen() {
 function drawPause() {
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  drawText('PAUSED', CANVAS_W / 2, CANVAS_H / 2, 'bold 60px monospace', '#fff', 'center');
-  drawText('Press ESC to resume', CANVAS_W / 2, CANVAS_H / 2 + 55, '20px monospace', '#adb5bd', 'center');
+  drawText(t('paused'), CANVAS_W / 2, CANVAS_H / 2, 'bold 60px monospace', '#fff', 'center');
+  drawText(t('resume'), CANVAS_W / 2, CANVAS_H / 2 + 55, '20px monospace', '#adb5bd', 'center');
 }
 
 function drawDeathMessage() {
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  const msg = DEATH_MESSAGES[deathCause] || '';
+  const msg = t(DEATH_MESSAGE_KEYS[deathCause]) || '';
 
   // Word-wrap message within ~700px
   ctx.font = 'bold 28px monospace';
@@ -1377,12 +1433,12 @@ function drawDeathMessage() {
   }
 
   if (deathIsGameOver) {
-    drawText('GAME OVER', CANVAS_W / 2, startY + 20, 'bold 42px monospace', '#e63946', 'center');
+    drawText(t('game_over'), CANVAS_W / 2, startY + 20, 'bold 42px monospace', '#e63946', 'center');
     startY += 72;
   }
 
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('Press SPACE to continue', CANVAS_W / 2, startY + 24, 'bold 20px monospace', '#adb5bd', 'center');
+    drawText(t('press_continue'), CANVAS_W / 2, startY + 24, 'bold 20px monospace', '#adb5bd', 'center');
   }
 }
 

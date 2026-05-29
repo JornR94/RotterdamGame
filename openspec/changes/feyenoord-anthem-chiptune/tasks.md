@@ -31,9 +31,9 @@
 
 ## 6. Verify
 
-- [ ] 6.1 Open game in browser, press a key — confirm anthem hook is audible and loops
-- [ ] 6.2 Confirm melody is recognizable as "Hand in Hand, Kameraden"
-- [ ] 6.3 Confirm bass and percussion are audible alongside melody
-- [ ] 6.4 Confirm jump, collect, and game-over sounds still work correctly
-- [ ] 6.5 Let music play for 60+ seconds — confirm no drift, no glitches
+- [x] 6.1 Open game in browser, press a key — confirm anthem hook is audible and loops
+- [x] 6.2 Confirm melody is recognizable as "Hand in Hand, Kameraden"
+- [x] 6.3 Confirm bass and percussion are audible alongside melody
+- [x] 6.4 Confirm jump, collect, and game-over sounds still work correctly
+- [x] 6.5 Let music play for 60+ seconds — confirm no drift, no glitches
 

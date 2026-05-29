@@ -65,17 +65,17 @@
 
 ## 10. Internationalisation (NL / EN)
 
-- [ ] 10.1 Add a `STRINGS` object containing all UI string keys in both `NL` and `EN` (see `i18n` spec for the full table)
-- [ ] 10.2 Add a `currentLang` variable defaulting to `'NL'`; load from `localStorage` key `rotterdam-game-lang` on startup
-- [ ] 10.3 Add a `t(key)` helper function that returns `STRINGS[currentLang][key]`
-- [ ] 10.4 Add `factNL` field to each landmark data object with the Dutch translation (see `i18n` spec)
-- [ ] 10.5 Update the fact popup to display `currentLang === 'NL' ? lm.factNL : lm.fact`
-- [ ] 10.6 Add language toggle UI to the start screen: `← TAAL: NL →` / `← LANGUAGE: EN →`, navigable with ArrowLeft / ArrowRight
-- [ ] 10.7 Save selected language to localStorage when SPACE is pressed to start
-- [ ] 10.8 Replace all hardcoded UI strings in `drawStartScreen`, `drawLevelSelect`, `drawGameOver`, `drawWinScreen`, and `drawPauseOverlay` with `t(key)` calls
-- [ ] 10.9 Test: start in NL, verify all UI and landmark facts are Dutch
-- [ ] 10.10 Test: switch to EN on start screen, verify all UI and landmark facts are English
-- [ ] 10.11 Test: language choice persists after page refresh
+- [x] 10.1 Add a `STRINGS` object containing all UI string keys in both `NL` and `EN` (see `i18n` spec for the full table)
+- [x] 10.2 Add a `currentLang` variable defaulting to `'NL'`; load from `localStorage` key `rotterdam-game-lang` on startup
+- [x] 10.3 Add a `t(key)` helper function that returns `STRINGS[currentLang][key]`
+- [x] 10.4 Add `factNL` field to each landmark data object with the Dutch translation (see `i18n` spec)
+- [x] 10.5 Update the fact popup to display `currentLang === 'NL' ? lm.factNL : lm.fact`
+- [x] 10.6 Add language toggle UI to the start screen: `← TAAL: NL →` / `← LANGUAGE: EN →`, navigable with ArrowLeft / ArrowRight
+- [x] 10.7 Save selected language to localStorage when SPACE is pressed to start
+- [x] 10.8 Replace all hardcoded UI strings in `drawStartScreen`, `drawLevelSelect`, `drawGameOver`, `drawWinScreen`, and `drawPauseOverlay` with `t(key)` calls
+- [x] 10.9 Test: start in NL, verify all UI and landmark facts are Dutch
+- [x] 10.10 Test: switch to EN on start screen, verify all UI and landmark facts are English
+- [x] 10.11 Test: language choice persists after page refresh
 
 ## 9. Polish & Testing
 
