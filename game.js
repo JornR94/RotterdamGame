@@ -42,7 +42,7 @@ const STRINGS = {
     death_seagull:   'Kijk uit joh, teringmeeuw!',
     death_golf:      'Bro, die Golf denkt dat dit Zandvoort is!',
     death_fall:      'Je ken ook nergens normaal lopen hier\u2026',
-    level1_name:     'Landmarks',
+    level1_name:     'Trekpleisters',
     level1_desc:     'Een retro tour langs de iconen van Rotterdam.',
   },
   EN: {
