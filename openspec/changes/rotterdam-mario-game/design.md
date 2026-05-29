@@ -6,7 +6,7 @@ A one-day game jam building a retro Rotterdam platformer. The game is entirely c
 
 **Goals:**
 - Playable Mario-style 2D platformer in the browser within one day
-- At least one full level featuring recognizable Rotterdam landmarks as platforms/collectibles
+- At least one full level featuring recognizable Rotterdam landmarks as platforms
 - Educational landmark facts displayed in-game
 - Retro pixel art visual style (8-bit/16-bit era palette, chunky sprites)
 - Chiptune/retro audio (Web Audio API for procedural sound or small audio files)
