@@ -10,10 +10,19 @@ const PAL = {
   white:     '#f1faee',
 };
 
+// ─── Retro Color Palette (color-hex.com/color-palette/165) ───────────────────
+const RETRO = {
+  olive:    '#666547', // dark olive — sky base
+  orange:   '#fb2e01', // orange-red — skyline silhouette
+  mint:     '#6fcb9f', // mint green — ground
+  gold:     '#ffe28a', // golden yellow — jumpable platforms & stars
+  cream:    '#fffeb3', // pale cream — star accent / sky horizon
+};
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// ─── Canvas Scaling (task 2.2) ───────────────────────────────────────────────
+// ─── Canvas Scaling ──────────────────────────────────────────────────────────
 function resizeCanvas() {
   const aspect = 16 / 9;
   let w = window.innerWidth;
@@ -29,30 +38,49 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// ─── Keyboard Input (task 2.3) ───────────────────────────────────────────────
+// ─── Keyboard Input ──────────────────────────────────────────────────────────
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (!audioInitialized) initAudio(); // task 7.1
+  if (!audioInitialized) initAudio();
   if (e.code === 'Escape') {
     if (gameState === 'playing') { gameState = 'paused'; }
     else if (gameState === 'paused') { gameState = 'playing'; }
   }
   if (e.code === 'Space') {
-    if (gameState === 'start') startGame();
-    else if (gameState === 'gameover') startGame();
-    else if (gameState === 'win') startGame();
+    if (gameState === 'start') { gameState = 'level_select'; }
+    else if (gameState === 'gameover') { gameState = 'level_select'; }
+    else if (gameState === 'win') { gameState = 'level_select'; }
+    else if (gameState === 'level_select') {
+      const unlockedLevels = LEVELS.filter(l => l.unlocked);
+      if (unlockedLevels.length > 0) {
+        startGame(unlockedLevels[selectedLevelIndex].id);
+      }
+    }
+  }
+  if (gameState === 'level_select') {
+    const unlockedLevels = LEVELS.filter(l => l.unlocked);
+    if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+      selectedLevelIndex = (selectedLevelIndex + 1) % unlockedLevels.length;
+    } else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+      selectedLevelIndex = (selectedLevelIndex - 1 + unlockedLevels.length) % unlockedLevels.length;
+    }
   }
   e.preventDefault();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
 // ─── Game State ──────────────────────────────────────────────────────────────
-let gameState = 'start'; // 'start' | 'playing' | 'paused' | 'gameover' | 'win'
+// 'start' | 'level_select' | 'playing' | 'paused' | 'gameover' | 'win'
+let gameState = 'start';
 let score = 0;
-let highScore = parseInt(localStorage.getItem('rotterdam-game-highscore') || '0'); // task 6.2
+let currentLevel = null;
+let selectedLevelIndex = 0;
 
-// ─── Audio (tasks 7.x) ──────────────────────────────────────────────────────
+// ─── Per-Level High Scores ───────────────────────────────────────────────────
+let levelHighScores = {};
+
+// ─── Audio ───────────────────────────────────────────────────────────────────
 let audioCtx = null;
 let audioInitialized = false;
 let musicNodes = [];
@@ -77,14 +105,14 @@ function playTone(freq, type, start, duration, gainVal) {
   osc.stop(start + duration + 0.01);
 }
 
-function playJumpSound() { // task 7.2
+function playJumpSound() {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
   playTone(300, 'square', t, 0.05, 0.2);
   playTone(500, 'square', t + 0.05, 0.08, 0.15);
 }
 
-function playCollectSound() { // task 7.3
+function playCollectSound() {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
   playTone(523, 'square', t, 0.07, 0.2);
@@ -92,7 +120,7 @@ function playCollectSound() { // task 7.3
   playTone(784, 'square', t + 0.14, 0.12, 0.2);
 }
 
-function playGameOverSound() { // task 7.4
+function playGameOverSound() {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
   playTone(400, 'sawtooth', t, 0.15, 0.25);
@@ -101,7 +129,7 @@ function playGameOverSound() { // task 7.4
   playTone(150, 'sawtooth', t + 0.45, 0.3, 0.15);
 }
 
-// task 7.5 — looping background chiptune
+// Looping background chiptune
 const MUSIC_NOTES = [262, 294, 330, 349, 392, 440, 494, 523, 392, 330, 294, 262];
 let musicInterval = null;
 
@@ -116,98 +144,105 @@ function startMusic() {
   musicInterval = setInterval(playNext, 220);
 }
 
-// ─── Level Data (task 4.1) ───────────────────────────────────────────────────
-// Format: { x, y, w, h, color, type }
-// type: 'ground' | 'platform' | 'landmark-base'
-
+// ─── Canvas / Level Constants ─────────────────────────────────────────────────
 const CANVAS_W = 800;
 const CANVAS_H = 450;
-const LEVEL_W = CANVAS_W * 3.5; // task: 3x viewport width
+const GROUND_Y = 400; // single ground level — all ground platforms share this Y
 
-// task 4.2 — Level 1 platform layout (Rotterdam skyline tour)
-const level1Platforms = [
-  // Ground — bridge section platforms aligned to deck top y=370 (task 8.5)
-  { x: 0,    y: 370, w: 600,  h: 80,  color: PAL.blue, type: 'ground' },
-  { x: 650,  y: 370, w: 400,  h: 80,  color: PAL.blue, type: 'ground' },
-  // Non-bridge ground sections remain at y=400
-  { x: 1100, y: 400, w: 500,  h: 50,  color: PAL.blue, type: 'ground' },
-  { x: 1650, y: 400, w: 300,  h: 50,  color: PAL.blue, type: 'ground' },
-  { x: 2000, y: 400, w: 800,  h: 50,  color: PAL.blue, type: 'ground' },
+// ─── LEVELS — array of level descriptor objects ───────────────────────────────
+const LEVELS = [
+  {
+    id: 1,
+    name: 'Rotterdam City',
+    description: 'Tour the iconic landmarks of Rotterdam.',
+    unlocked: true,
+    width: CANVAS_W * 3.5,
+    skyGradient: ['#1d3557', '#457b9d', '#a8dadc'],
+    silhouetteColor: '#2d4a6e',
+    platforms: [
+      // Ground — unified at GROUND_Y=400 across all sections
+      { x: 0,    y: GROUND_Y, w: 600,  h: 50,  color: RETRO.mint, type: 'ground' },
+      { x: 650,  y: GROUND_Y, w: 400,  h: 50,  color: RETRO.mint, type: 'ground' },
+      { x: 1100, y: GROUND_Y, w: 500,  h: 50,  color: RETRO.mint, type: 'ground' },
+      { x: 1650, y: GROUND_Y, w: 300,  h: 50,  color: RETRO.mint, type: 'ground' },
+      { x: 2000, y: GROUND_Y, w: 800,  h: 50,  color: RETRO.mint, type: 'ground' },
 
-  // Erasmusbrug section — bridge cable platforms (task 1.3 — replaced greys with lightBlue)
-  { x: 300,  y: 340, w: 120,  h: 15,  color: PAL.lightBlue, type: 'platform' },
-  { x: 450,  y: 280, w: 80,   h: 15,  color: PAL.lightBlue, type: 'platform' },
-  { x: 550,  y: 220, w: 80,   h: 15,  color: PAL.lightBlue, type: 'platform' },
+      // Erasmusbrug section — bridge cable platforms
+      { x: 300,  y: 340, w: 120,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 450,  y: 280, w: 80,   h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 550,  y: 220, w: 80,   h: 15,  color: RETRO.mint, type: 'platform' },
 
-  // Euromast section — tall tower steps (task 1.3 — replaced greys with darkBlue)
-  { x: 700,  y: 350, w: 100,  h: 15,  color: PAL.darkBlue, type: 'platform' },
-  { x: 750,  y: 290, w: 80,   h: 15,  color: PAL.darkBlue, type: 'platform' },
-  { x: 780,  y: 230, w: 60,   h: 15,  color: PAL.darkBlue, type: 'platform' },
-  { x: 800,  y: 170, w: 40,   h: 15,  color: PAL.darkBlue, type: 'platform' }, // top of tower
+      // Euromast section — tall tower steps
+      { x: 700,  y: 350, w: 100,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 750,  y: 290, w: 80,   h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 780,  y: 230, w: 60,   h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 800,  y: 170, w: 40,   h: 15,  color: RETRO.mint, type: 'platform' }, // top of tower
 
-  // Markthal section — arch-shaped platforms (task 1.4 — replaced orange with PAL.red)
-  { x: 1000, y: 360, w: 120,  h: 15,  color: PAL.red, type: 'platform' },
-  { x: 1050, y: 300, w: 150,  h: 15,  color: PAL.red, type: 'platform' },
-  { x: 1100, y: 240, w: 120,  h: 15,  color: PAL.red, type: 'platform' },
+      // Markthal section — arch-shaped platforms
+      { x: 1000, y: 360, w: 120,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1050, y: 300, w: 150,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1100, y: 240, w: 120,  h: 15,  color: RETRO.mint, type: 'platform' },
 
-  // Kubuswoningen — tilted cube platforms (task 1.5 — replaced yellow with lightBlue)
-  { x: 1350, y: 370, w: 90,   h: 15,  color: PAL.lightBlue, type: 'platform' },
-  { x: 1420, y: 310, w: 90,   h: 15,  color: PAL.lightBlue, type: 'platform' },
-  { x: 1490, y: 250, w: 90,   h: 15,  color: PAL.lightBlue, type: 'platform' },
+      // Kubuswoningen — tilted cube platforms
+      { x: 1350, y: 370, w: 90,   h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1420, y: 310, w: 90,   h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1490, y: 250, w: 90,   h: 15,  color: RETRO.mint, type: 'platform' },
 
-  // De Kuip — stadium bowl terraces
-  { x: 1700, y: 360, w: 200,  h: 15,  color: PAL.red, type: 'platform' },
-  { x: 1730, y: 300, w: 140,  h: 15,  color: PAL.red, type: 'platform' },
-  { x: 1760, y: 240, w: 80,   h: 15,  color: PAL.red, type: 'platform' },
+      // De Kuip — stadium bowl terraces
+      { x: 1700, y: 360, w: 200,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1730, y: 300, w: 140,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 1760, y: 240, w: 80,   h: 15,  color: RETRO.mint, type: 'platform' },
 
-  // Port section — container dock platforms
-  { x: 2050, y: 370, w: 120,  h: 15,  color: PAL.blue, type: 'platform' },
-  { x: 2200, y: 340, w: 100,  h: 15,  color: PAL.blue, type: 'platform' },
-  { x: 2330, y: 300, w: 120,  h: 15,  color: PAL.blue, type: 'platform' },
-  { x: 2480, y: 260, w: 100,  h: 15,  color: PAL.blue, type: 'platform' },
+      // Port section — container dock platforms
+      { x: 2050, y: 370, w: 120,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 2200, y: 340, w: 100,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 2330, y: 300, w: 120,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 2480, y: 260, w: 100,  h: 15,  color: RETRO.mint, type: 'platform' },
 
-  // Approach to finish (task 1.2 — replaced #4a7c59 green)
-  { x: 2600, y: 370, w: 150,  h: 15,  color: PAL.darkBlue, type: 'platform' },
-  { x: 2780, y: 400, w: 300,  h: 50,  color: PAL.blue, type: 'ground' },
+      // Approach to finish
+      { x: 2600, y: 370, w: 150,  h: 15,  color: RETRO.mint, type: 'platform' },
+      { x: 2780, y: GROUND_Y, w: 300,  h: 50,  color: RETRO.mint, type: 'ground' },
+    ],
+    finishFlag: { x: 2980, y: 300, w: 20, h: 100 },
+    landmarks: [
+      { x: 520,  y: 180, name: 'Erasmusbrug',    fact: 'The Erasmus Bridge (1996) is 802 metres long and is also known as "The Swan".' },
+      { x: 800,  y: 130, name: 'Euromast',        fact: 'The Euromast (185m) is the tallest building in Rotterdam, built in 1960.' },
+      { x: 1200, y: 200, name: 'Markthal',        fact: 'The Market Hall (2014) contains 228 apartments and the largest artwork in the Netherlands on its ceiling.' },
+      { x: 1490, y: 210, name: 'Kubuswoningen',   fact: 'The Cube Houses were designed by Piet Blom and are tilted at 45 degrees.' },
+      { x: 1780, y: 200, name: 'De Kuip',         fact: 'De Kuip (Stadion Feijenoord) has a capacity of 51,117 spectators.' },
+      { x: 2480, y: 220, name: 'Haven Rotterdam', fact: 'The port of Rotterdam is the largest port in Europe.' },
+    ],
+    // Stars are kept away from ground gaps (gaps at x≈600-650, 1050-1100, 1600-1650, 1950-2000)
+    emptyStars: [
+      { x: 150,  y: 350 },
+      { x: 400,  y: 290 },
+      { x: 500,  y: 230 },  // moved from x:600 y:370 (was at gap edge)
+      { x: 900,  y: 310 },
+      { x: 1200, y: 260 },
+      { x: 1450, y: 200 },  // moved from x:1600 y:340 (was at gap edge)
+      { x: 2050, y: 300 },  // moved from x:1900 y:370 (was near gap at 1950)
+      { x: 2100, y: 320 },
+      { x: 2300, y: 355 },
+      { x: 2700, y: 340 },
+    ],
+  },
 ];
 
-// task 4.5 — Finish flag
-const finishFlag = { x: 2980, y: 300, w: 20, h: 100 };
-
-// ─── Landmark Collectibles (task 5.1) ────────────────────────────────────────
-const LANDMARKS_DATA = [
-  { x: 520,  y: 180, name: 'Erasmusbrug',      fact: 'The Erasmus Bridge (1996) is 802 metres long and is also known as "The Swan".' },
-  { x: 800,  y: 130, name: 'Euromast',          fact: 'The Euromast (185m) is the tallest building in Rotterdam, built in 1960.' },
-  { x: 1100, y: 200, name: 'Markthal',          fact: 'The Market Hall (2014) contains 228 apartments and the largest artwork in the Netherlands on its ceiling.' },
-  { x: 1490, y: 210, name: 'Kubuswoningen',     fact: 'The Cube Houses were designed by Piet Blom and are tilted at 45 degrees.' },
-  { x: 1780, y: 200, name: 'De Kuip',           fact: 'De Kuip (Stadion Feijenoord) has a capacity of 51,117 spectators.' },
-  { x: 2480, y: 220, name: 'Haven Rotterdam',   fact: 'The port of Rotterdam is the largest port in Europe.' },
-];
-
-// task 3.2 — 10 empty stars scattered across the level (no fact)
-const EMPTY_STARS_DATA = [
-  { x: 150,  y: 350 },
-  { x: 400,  y: 290 },
-  { x: 600,  y: 370 },
-  { x: 900,  y: 310 },
-  { x: 1200, y: 260 },
-  { x: 1600, y: 340 },
-  { x: 1900, y: 370 },
-  { x: 2100, y: 320 },
-  { x: 2300, y: 355 },
-  { x: 2700, y: 340 },
-];
+// Load per-level high scores from localStorage at startup
+for (const level of LEVELS) {
+  levelHighScores[level.id] = parseInt(localStorage.getItem(`rotterdam-hs-${level.id}`) || '0');
+}
 
 let landmarks = [];
 
-// task 3.3 — resetLandmarks now includes both fact stars and empty stars
+// resetLandmarks reads from currentLevel
 function resetLandmarks() {
-  const factStars = LANDMARKS_DATA.map(l => ({ ...l, collected: false, animAngle: Math.random() * Math.PI * 2, isFact: true }));
-  const emptyStars = EMPTY_STARS_DATA.map(e => ({ ...e, name: null, fact: null, collected: false, animAngle: Math.random() * Math.PI * 2, isFact: false }));
+  const factStars = currentLevel.landmarks.map(l => ({ ...l, collected: false, animAngle: Math.random() * Math.PI * 2, isFact: true }));
+  const emptyStars = currentLevel.emptyStars.map(e => ({ ...e, name: null, fact: null, collected: false, animAngle: Math.random() * Math.PI * 2, isFact: false }));
   landmarks = [...factStars, ...emptyStars];
 }
 
-// ─── Player (task 3.1) ───────────────────────────────────────────────────────
+// ─── Player ───────────────────────────────────────────────────────────────────
 const PLAYER_W = 24;
 const PLAYER_H = 36;
 const GRAVITY = 900;         // px/s²
@@ -219,7 +254,7 @@ let player;
 function resetPlayer() {
   player = {
     x: 60,
-    y: 360,
+    y: GROUND_Y - PLAYER_H,
     vx: 0,
     vy: 0,
     w: PLAYER_W,
@@ -232,17 +267,17 @@ function resetPlayer() {
   };
 }
 
-// ─── Camera (task 2.6) ───────────────────────────────────────────────────────
+// ─── Camera ───────────────────────────────────────────────────────────────────
 let cameraX = 0;
 
-// ─── Popup state (task 5.4) ──────────────────────────────────────────────────
+// ─── Popup state ─────────────────────────────────────────────────────────────
 let popup = null; // { name, fact, timer }
 
-// ─── Enemy System (tasks 5.1, 6.x, 7.x) ─────────────────────────────────────
+// ─── Enemy System ─────────────────────────────────────────────────────────────
 // Enemy object: { x, y, w, h, vx, type, alive, patrolMin, patrolMax, points }
 let enemies = [];
 
-// task 6.1 — draw VW Golf hatchback sprite within 36×20px bounding box
+// Draw VW Golf hatchback sprite within 36×20px bounding box
 function drawGolfCar(ex, ey, dir) {
   ctx.save();
   ctx.translate(ex + 18, ey + 18);
@@ -391,26 +426,25 @@ function drawSeagull(ex, ey, dir) {
   ctx.restore();
 }
 
-// task 6.2 & 6.3 & 7.2 & 7.3 — spawn data + resetEnemies
+// Spawn data + resetEnemies
 function resetEnemies() {
   const golfCars = [
-    // task 6.2 — Golf cars on ground platforms, vx=300
-    { x: 80,   y: 370, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 0,    patrolMax: 580,  points: 50 },
-    { x: 1200, y: 370, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50 },
-    { x: 2100, y: 370, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50 },
+    { x: 300,  y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 200,  patrolMax: 580,  points: 50 },
+    { x: 1200, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 1100, patrolMax: 1570, points: 50 },
+    { x: 2100, y: GROUND_Y - 20, w: 36, h: 20, vx: 300, type: 'golf', alive: true, patrolMin: 2000, patrolMax: 2770, points: 50 },
   ];
   const seagulls = [
-    // Seagulls on ground platforms, slow back-and-forth patrol
-    { x: 200,  y: 354, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 100,  patrolMax: 250,  points: 30 },
-    { x: 700,  y: 354, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 650,  patrolMax: 1010, points: 30 },
-    { x: 1700, y: 384, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 1650, patrolMax: 1900, points: 30 },
-    { x: 2500, y: 384, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 2400, patrolMax: 2750, points: 30 },
+    { x: 200,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 100,  patrolMax: 250,  points: 30 },
+    { x: 700,  y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 650,  patrolMax: 1010, points: 30 },
+    { x: 1700, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 1650, patrolMax: 1900, points: 30 },
+    { x: 2500, y: GROUND_Y - 18, w: 24, h: 18, vx: 60,  type: 'seagull', alive: true, patrolMin: 2400, patrolMax: 2750, points: 30 },
   ];
   enemies = [...golfCars, ...seagulls];
 }
 
-// ─── Game Init ───────────────────────────────────────────────────────────────
-function startGame() {
+// ─── Game Init ────────────────────────────────────────────────────────────────
+function startGame(levelId) {
+  currentLevel = LEVELS.find(l => l.id === levelId);
   score = 0;
   resetPlayer();
   resetLandmarks();
@@ -420,7 +454,7 @@ function startGame() {
   gameState = 'playing';
 }
 
-// ─── AABB Collision (task 2.5) ───────────────────────────────────────────────
+// ─── AABB Collision ───────────────────────────────────────────────────────────
 function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
@@ -437,11 +471,11 @@ function aabbCollide(player, plat) {
   return { overlapLeft, overlapRight, overlapTop, overlapBot };
 }
 
-// ─── Update (tasks 2.x, 3.x) ─────────────────────────────────────────────────
+// ─── Update ───────────────────────────────────────────────────────────────────
 function update(dt) {
   if (gameState !== 'playing') return;
 
-  // task 3.2 — horizontal movement
+  // Horizontal movement
   if (keys['ArrowLeft']) {
     player.vx = -WALK_SPEED;
     player.facingRight = false;
@@ -452,14 +486,14 @@ function update(dt) {
     player.vx = 0;
   }
 
-  // task 3.3 & 3.4 — jump
+  // Jump
   if ((keys['Space'] || keys['ArrowUp']) && player.isOnGround) {
     player.vy = JUMP_VEL;
     player.isOnGround = false;
     playJumpSound();
   }
 
-  // task 2.4 — gravity
+  // Gravity
   player.vy += GRAVITY * dt;
 
   // Move player
@@ -469,9 +503,9 @@ function update(dt) {
   // Prevent going left of level start
   if (player.x < 0) { player.x = 0; player.vx = 0; }
 
-  // task 2.5 — platform collision
+  // Platform collision
   player.isOnGround = false;
-  for (const plat of level1Platforms) {
+  for (const plat of currentLevel.platforms) {
     const col = aabbCollide(player, plat);
     if (!col) continue;
 
@@ -495,11 +529,10 @@ function update(dt) {
     }
   }
 
-  // task 3.5 — fall below canvas
+  // Fall below canvas
   if (player.y > CANVAS_H + 50) {
     player.lives--;
     if (player.lives <= 0) {
-      // task 3.6 — game over
       playGameOverSound();
       saveHighScore();
       gameState = 'gameover';
@@ -509,11 +542,11 @@ function update(dt) {
     cameraX = 0;
   }
 
-  // task 2.6 — camera scroll
+  // Camera scroll
   const targetCam = player.x - CANVAS_W / 2 + player.w / 2;
-  cameraX = Math.max(0, Math.min(targetCam, LEVEL_W - CANVAS_W));
+  cameraX = Math.max(0, Math.min(targetCam, currentLevel.width - CANVAS_W));
 
-  // task 5.2 — enemy update loop: move enemies, handle patrol direction reversal
+  // Enemy update loop
   for (const en of enemies) {
     if (!en.alive) continue;
     en.x += en.vx * dt;
@@ -521,7 +554,7 @@ function update(dt) {
     if (en.x + en.w > en.patrolMax) { en.x = en.patrolMax - en.w; en.vx = -Math.abs(en.vx); }
   }
 
-  // task 5.4 — enemy-player collision
+  // Enemy-player collision
   for (const en of enemies) {
     if (!en.alive) continue;
     if (!rectsOverlap(player.x, player.y, player.w, player.h, en.x, en.y, en.w, en.h)) continue;
@@ -530,7 +563,7 @@ function update(dt) {
     const overlapFromTop = playerBottom - en.y;
 
     if (player.vy > 0 && overlapFromTop <= 12) {
-      // Stomp kill — task 6.4 & 7.4 — award points based on enemy type
+      // Stomp kill — award points based on enemy type
       en.alive = false;
       score += en.points;
       player.vy = -300; // bounce player up
@@ -549,7 +582,7 @@ function update(dt) {
     }
   }
 
-  // task 5.3 — landmark collision (task 3.4 — fact vs empty star logic)
+  // Landmark collision
   for (const lm of landmarks) {
     if (lm.collected) continue;
     if (rectsOverlap(player.x, player.y, player.w, player.h, lm.x - 15, lm.y - 15, 30, 30)) {
@@ -565,8 +598,9 @@ function update(dt) {
     lm.animAngle += dt * 3;
   }
 
-  // task 4.6 — finish flag collision
-  if (rectsOverlap(player.x, player.y, player.w, player.h, finishFlag.x, finishFlag.y, finishFlag.w, finishFlag.h)) {
+  // Finish flag collision
+  const ff = currentLevel.finishFlag;
+  if (rectsOverlap(player.x, player.y, player.w, player.h, ff.x, ff.y, ff.w, ff.h)) {
     score += 500; // level complete bonus
     saveHighScore();
     gameState = 'win';
@@ -584,11 +618,12 @@ function update(dt) {
   if (Math.abs(player.idleBob) > 2) player.idleBobDir *= -1;
 }
 
-// task 6.3 — save high score
+// ─── Save High Score ──────────────────────────────────────────────────────────
 function saveHighScore() {
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem('rotterdam-game-highscore', String(highScore));
+  const id = currentLevel.id;
+  if (score > (levelHighScores[id] || 0)) {
+    levelHighScores[id] = score;
+    localStorage.setItem(`rotterdam-hs-${id}`, String(score));
   }
 }
 
@@ -605,52 +640,127 @@ function drawText(text, x, y, font, color, align) {
   ctx.fillText(text, x, y);
 }
 
-// ─── Draw Background (task 4.4) ──────────────────────────────────────────────
+// ─── Draw Background ──────────────────────────────────────────────────────────
 function drawBackground() {
-  // Sky gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  grad.addColorStop(0, '#1d3557');
-  grad.addColorStop(0.6, '#457b9d');
-  grad.addColorStop(1, '#a8dadc');
+  // Sky gradient from currentLevel
+  const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+  const sg = currentLevel.skyGradient;
+  grad.addColorStop(0,   sg[0]);
+  grad.addColorStop(0.5, sg[1]);
+  grad.addColorStop(1,   sg[2]);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // Simplified Rotterdam skyline silhouettes (draw at fixed scroll fraction)
-  const parallax = cameraX * 0.3;
-  ctx.fillStyle = '#2d4a6e';
+  // Water strip at bottom (river Maas)
+  ctx.fillStyle = RETRO.mint;
+  ctx.fillRect(0, GROUND_Y, CANVAS_W, CANVAS_H - GROUND_Y);
 
-  // Euromast silhouette
-  const emX = 600 - parallax % CANVAS_W;
-  ctx.fillRect(emX + 10, 150, 8, 200);
-  ctx.fillRect(emX, 145, 28, 15);
-  ctx.fillRect(emX + 5, 130, 18, 18);
+  // Pixelated Rotterdam skyline silhouette — parallax at 0.25x camera speed
+  const px = Math.floor(cameraX * 0.25); // integer pixel offset for pixelated feel
+  const SIL = currentLevel.silhouetteColor;
+  const groundLine = GROUND_Y; // silhouettes sit on this baseline
 
-  // Erasmusbrug pylon
-  const ebX = 200 - (parallax * 0.8) % CANVAS_W;
-  ctx.fillRect(ebX, 160, 10, 190);
-  ctx.fillRect(ebX - 20, 160, 50, 10);
+  ctx.fillStyle = SIL;
 
-  // Cube Houses silhouette
-  const cuX = 1000 - parallax % (CANVAS_W * 2);
-  for (let i = 0; i < 3; i++) {
-    ctx.save();
-    ctx.translate(cuX + i * 40, 280);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillRect(-15, -15, 30, 30);
-    ctx.restore();
+  // Helper: draw a pixel-snapped rect in world-parallax space
+  function bgRect(wx, wy, w, h) {
+    const sx = Math.floor(wx - px);
+    if (sx + w < 0 || sx > CANVAS_W) return;
+    ctx.fillRect(sx, wy, w, h);
   }
 
-  // Port cranes
-  const portX = 1300 - (parallax * 0.5) % (CANVAS_W * 1.5);
-  for (let i = 0; i < 3; i++) {
-    const cx = portX + i * 120;
-    ctx.fillRect(cx, 220, 8, 180);     // vertical
-    ctx.fillRect(cx - 40, 220, 80, 6); // horizontal arm
-    ctx.fillRect(cx + 30, 220, 6, 60); // hook
+  // ── Erasmus Bridge (left side of panorama) ───────────────────────────────
+  // Bridge deck — long horizontal slab
+  bgRect(-40, groundLine - 8, 700, 8);
+
+  // A-frame pylon — pixel art version
+  const pylBase = 340;  // world x of pylon base
+  const pylPeak = 40;   // screen y of peak
+  const deckScreenY = groundLine - 8;
+  // We draw the pylon as a series of stacked horizontal rectangles tapering upward
+  for (let row = 0; row < 12; row++) {
+    const t = row / 12;
+    const y = deckScreenY - row * 22;
+    const spread = Math.round(48 * (1 - t)); // legs spread wide at bottom
+    const thickness = 6;
+    bgRect(pylBase - spread - thickness, y, thickness, 22); // left leg
+    bgRect(pylBase + spread,             y, thickness, 22); // right leg
   }
+  // Pylon cap (top block)
+  bgRect(pylBase - 4, pylPeak, 8, 22);
+
+  // Stay cables — drawn as thin pixel lines fanning from peak to deck
+  ctx.fillStyle = SIL;
+  const cableAnchors = [-260, -200, -150, -100, -60, -20, 20, 60, 100, 150, 200, 260];
+  for (const offset of cableAnchors) {
+    const anchorWX = pylBase + offset;
+    const anchorSX = Math.floor(anchorWX - px);
+    if (anchorSX < -10 || anchorSX > CANVAS_W + 10) continue;
+    const peakSX = Math.floor(pylBase - px);
+    const peakSY = pylPeak + 4;
+    const anchorSY = deckScreenY;
+    // Draw cable as a 1-pixel wide line using fillRect pixel-by-pixel (pixelated)
+    const dx = anchorSX - peakSX;
+    const dy = anchorSY - peakSY;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    for (let i = 0; i < steps; i += 2) {
+      const t = i / steps;
+      const cx2 = Math.floor(peakSX + dx * t);
+      const cy2 = Math.floor(peakSY + dy * t);
+      ctx.fillRect(cx2, cy2, 1, 1);
+    }
+  }
+
+  ctx.fillStyle = SIL;
+
+  // ── City skyline — dense block buildings (right of bridge) ──────────────
+  const buildings = [
+    // [worldX, height, width] — pixel-snapped, blocky shapes
+    // De Rotterdam (tall twin towers)
+    [650,  180, 24], [676, 160, 24],
+    // Smaller mid-rise cluster
+    [710,  100, 16], [728, 120, 20], [750, 90, 14],
+    // Tall block
+    [770,  200, 28],
+    // Mid cluster
+    [800,  110, 18], [820, 140, 22], [844, 80, 12],
+    // Pencil tower
+    [860,  220, 16],
+    // Low-rises
+    [878,  70,  20], [900, 90, 16], [918, 60, 12],
+    // Another tall pair
+    [934,  170, 22], [958, 150, 18],
+    // Dense right cluster
+    [980,  100, 14], [996, 130, 18], [1016, 80, 12],
+    [1030, 110, 16], [1048, 90, 14], [1064, 120, 20],
+    [1086, 160, 22], [1110, 80,  14], [1126, 100, 16],
+    // Far right — cranes / port silhouette
+    [1160, 60,  10], [1172, 120, 8], [1182, 60, 10],
+    [1210, 60,  10], [1222, 130, 8], [1232, 60, 10],
+    [1260, 60,  10], [1272, 110, 8], [1282, 60, 10],
+  ];
+
+  for (const [wx, bh, bw] of buildings) {
+    bgRect(wx, groundLine - bh, bw, bh);
+    // Windows — lighter pixel rows to suggest detail
+    const winColor = '#1a2e45'; // darker shade for windows
+    ctx.fillStyle = winColor;
+    for (let wy = groundLine - bh + 8; wy < groundLine - 8; wy += 10) {
+      const sx = Math.floor(wx - px);
+      if (sx + bw < 0 || sx > CANVAS_W) continue;
+      for (let wx2 = sx + 4; wx2 < sx + bw - 4; wx2 += 6) {
+        ctx.fillRect(wx2, wy, 3, 5);
+      }
+    }
+    ctx.fillStyle = SIL;
+  }
+
+  // Ground baseline strip (quay / embankment)
+  bgRect(-100, groundLine - 14, 1400, 6);
+  bgRect(-100, groundLine - 20, 1400, 4); // second stripe for pixel depth
 }
 
-// ─── Draw Bridge (tasks 8.1–8.3) ─────────────────────────────────────────────
+// ─── Draw Bridge ──────────────────────────────────────────────────────────────
 // Erasmus Bridge drawn in background layer, before platforms
 function drawBridge() {
   // Bridge deck visible x range relative to camera
@@ -658,17 +768,13 @@ function drawBridge() {
   const deckEndX = 900 - cameraX;
   if (deckEndX < 0 || deckStartX > CANVAS_W) return;
 
-  // task 8.1 — Bridge deck: wide horizontal rect at y=370, spanning x 0–900
-  ctx.fillStyle = PAL.lightBlue;
-  ctx.fillRect(deckStartX, 370, 900, 12);
-
-  // task 8.2 — A-frame pylon at x≈400
+  // A-frame pylon at x≈400
   const pylonX = 400 - cameraX;
   const pylonPeakY = 80;
   const legSpread = 60;
-  const deckY = 370;
+  const deckY = GROUND_Y;
 
-  ctx.fillStyle = PAL.lightBlue;
+  ctx.fillStyle = RETRO.mint;
   ctx.beginPath();
   ctx.moveTo(pylonX, pylonPeakY);
   ctx.lineTo(pylonX - legSpread, deckY);
@@ -685,8 +791,8 @@ function drawBridge() {
   ctx.closePath();
   ctx.fill();
 
-  // task 8.3 — Stay cables from pylon peak to deck anchors
-  ctx.strokeStyle = PAL.white;
+  // Stay cables from pylon peak to deck anchors
+  ctx.strokeStyle = RETRO.mint;
   ctx.lineWidth = 1.5;
   const cableAnchors = [-200, -140, -80, -30, 30, 80, 140, 200];
   for (const offset of cableAnchors) {
@@ -700,9 +806,9 @@ function drawBridge() {
   ctx.lineWidth = 1;
 }
 
-// ─── Draw Platforms (task 4.3) ───────────────────────────────────────────────
+// ─── Draw Platforms ───────────────────────────────────────────────────────────
 function drawPlatforms() {
-  for (const plat of level1Platforms) {
+  for (const plat of currentLevel.platforms) {
     const sx = plat.x - cameraX;
     if (sx + plat.w < 0 || sx > CANVAS_W) continue;
     drawRect(sx, plat.y, plat.w, plat.h, plat.color);
@@ -711,25 +817,43 @@ function drawPlatforms() {
   }
 }
 
-// ─── Draw Finish Flag (task 4.5) ─────────────────────────────────────────────
+// ─── Draw Finish Flag ─────────────────────────────────────────────────────────
 function drawFinishFlag(time) {
-  const sx = finishFlag.x - cameraX;
-  if (sx < -30 || sx > CANVAS_W + 30) return;
-  // Pole
-  drawRect(sx, finishFlag.y, 6, finishFlag.h, '#f1faee');
-  // Flag wave
-  ctx.fillStyle = '#e63946';
-  ctx.beginPath();
-  const wave = Math.sin(time * 3) * 5;
-  ctx.moveTo(sx + 6, finishFlag.y);
-  ctx.lineTo(sx + 6 + 40, finishFlag.y + 10 + wave);
-  ctx.lineTo(sx + 6 + 40, finishFlag.y + 30 + wave);
-  ctx.lineTo(sx + 6, finishFlag.y + 20);
-  ctx.closePath();
-  ctx.fill();
+  const ff = currentLevel.finishFlag;
+  const sx = ff.x - cameraX;
+  if (sx < -80 || sx > CANVAS_W + 80) return;
+
+  const poleX = Math.floor(sx);
+  const poleTopY = ff.y;
+  const poleH = ff.h;
+
+  // Pole — thin dark post
+  drawRect(poleX, poleTopY, 4, poleH, '#222222');
+
+  // Checkered flag — 8×5 grid of 8×8px squares
+  const flagW = 64;
+  const flagH = 40;
+  const cols = 8;
+  const rows = 5;
+  const cellW = flagW / cols; // 8px
+  const cellH = flagH / rows; // 8px
+  const flagX = poleX + 4;
+  const flagY = poleTopY;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isBlack = (r + c) % 2 === 0;
+      ctx.fillStyle = isBlack ? '#000000' : '#ffffff';
+      ctx.fillRect(Math.floor(flagX + c * cellW), Math.floor(flagY + r * cellH), Math.ceil(cellW), Math.ceil(cellH));
+    }
+  }
+  // Thin border around flag
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(flagX + 0.5, flagY + 0.5, flagW - 1, flagH - 1);
 }
 
-// ─── Draw Landmarks (task 5.2 / 3.1 proper star polygon) ─────────────────────
+// ─── Draw Landmarks ───────────────────────────────────────────────────────────
 function drawStar(cx, cy, angle) {
   const outerR = 14;
   const innerR = 6;
@@ -753,13 +877,13 @@ function drawLandmarks() {
     const sx = lm.x - cameraX;
     if (sx < -40 || sx > CANVAS_W + 40) continue;
     ctx.save();
-    ctx.fillStyle = '#ffd700';
+    ctx.fillStyle = RETRO.gold;
     drawStar(sx, lm.y, lm.animAngle);
     ctx.restore();
   }
 }
 
-// ─── Draw Enemies (task 5.3) ─────────────────────────────────────────────────
+// ─── Draw Enemies ─────────────────────────────────────────────────────────────
 function drawEnemies() {
   for (const en of enemies) {
     if (!en.alive) continue;
@@ -774,7 +898,7 @@ function drawEnemies() {
   }
 }
 
-// ─── Draw Player (task 3.7 / 2.x Feyenoord skin) ─────────────────────────────
+// ─── Draw Player ─────────────────────────────────────────────────────────────
 function drawPlayer() {
   const sx = player.x - cameraX;
   const sy = player.y + (player.isOnGround ? player.idleBob : 0);
@@ -794,7 +918,6 @@ function drawPlayer() {
   ctx.fillRect(2, -1, 2, 2);
 
   // Shirt — Feyenoord split: left half red, right half white; sleeves opposite
-  // Torso: left panel red, right panel white
   drawRect(-8, 10, 8, 16, PAL.red);   // left torso half
   drawRect( 0, 10, 8, 16, PAL.white); // right torso half
   // Left sleeve (white) — sticks out left side
@@ -802,31 +925,30 @@ function drawPlayer() {
   // Right sleeve (red) — sticks out right side
   drawRect(  7, 10, 4, 8, PAL.red);
 
-  // Shorts — black below shirt (task 2.3)
+  // Shorts — black below shirt
   drawRect(-8, 26, 16, 8, '#212529');
 
-  // Socks — white with red top trim band (task 2.4)
-  // Left leg socks
+  // Socks — white with red top trim band
   drawRect(-8, 34, 6, 8, PAL.white);
   drawRect(-8, 34, 6, 3, PAL.red); // red trim band
-  // Right leg socks
   const legOff = (player.vx !== 0 && player.isOnGround) ? Math.sin(Date.now() * 0.01) * 4 : 0;
   drawRect(2, 34 + legOff, 6, 8, PAL.white);
   drawRect(2, 34 + legOff, 6, 3, PAL.red); // red trim band
 
-  // Boots — black, sit below socks (task 2.5)
+  // Boots — black, sit below socks
   drawRect(-10, 42, 8, 5, '#212529');
   drawRect(1,   42 + legOff, 8, 5, '#212529');
 
   ctx.restore();
 }
 
-// ─── Draw HUD (task 8.2 / 4.5 — score moved to center-top) ──────────────────
+// ─── Draw HUD ─────────────────────────────────────────────────────────────────
 function drawHUD() {
-  // Score — center-top to avoid overlay conflict (task 4.5)
+  // Score — center-top
   drawText(`SCORE: ${score}`, CANVAS_W / 2, 22, 'bold 18px monospace', '#fff', 'center');
-  // High score — right side
-  drawText(`BEST: ${highScore}`, CANVAS_W - 10, 22, 'bold 16px monospace', '#ffd700', 'right');
+  // Per-level best score — right side
+  const best = levelHighScores[currentLevel.id] || 0;
+  drawText(`BEST: ${best}`, CANVAS_W - 10, 22, 'bold 16px monospace', '#ffd700', 'right');
   // Lives (pixel hearts)
   for (let i = 0; i < player.lives; i++) {
     drawHeart(20 + i * 28, 14, PAL.red);
@@ -835,7 +957,6 @@ function drawHUD() {
 
 function drawHeart(x, y, color) {
   ctx.fillStyle = color;
-  // Simple heart using rects
   ctx.fillRect(x - 6, y - 2, 4, 4);
   ctx.fillRect(x + 2, y - 2, 4, 4);
   ctx.fillRect(x - 8, y, 16, 4);
@@ -844,13 +965,13 @@ function drawHeart(x, y, color) {
   ctx.fillRect(x - 2, y + 12, 4, 2);
 }
 
-// ─── Draw Fact Overlay (tasks 4.1–4.3) — top-left HUD panel ──────────────────
+// ─── Draw Fact Overlay ────────────────────────────────────────────────────────
 function drawFactOverlay() {
   if (!popup) return;
-  const totalTime = 4; // task 4.4 — 4s timer
+  const totalTime = 4;
   const elapsed = totalTime - popup.timer;
 
-  // task 4.2 — alpha fade-in (0–0.3s) and fade-out (last 1s)
+  // Alpha fade-in (0–0.3s) and fade-out (last 1s)
   let alpha;
   if (elapsed < 0.3) {
     alpha = elapsed / 0.3;
@@ -872,7 +993,7 @@ function drawFactOverlay() {
   ctx.roundRect(ox, oy, ow, 90, 6);
   ctx.fill();
 
-  // task 4.3 — landmark name in bold small font
+  // Landmark name in bold small font
   ctx.globalAlpha = alpha;
   ctx.font = 'bold 12px monospace';
   ctx.fillStyle = '#ffd700';
@@ -904,7 +1025,66 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
   ctx.fillText(line, x, y);
 }
 
-// ─── Draw Start Screen (task 8.1) ─────────────────────────────────────────────
+// ─── Draw Level Select Screen ─────────────────────────────────────────────────
+function drawLevelSelectScreen() {
+  const unlockedLevels = LEVELS.filter(l => l.unlocked);
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  grad.addColorStop(0, '#1d3557');
+  grad.addColorStop(1, '#457b9d');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Title
+  drawText('SELECT LEVEL', CANVAS_W / 2, 80, 'bold 40px monospace', '#ffd700', 'center');
+
+  // Level cards
+  const cardW = 200;
+  const cardH = 120;
+  const cardSpacing = 40;
+  const totalW = unlockedLevels.length * cardW + (unlockedLevels.length - 1) * cardSpacing;
+  const startX = (CANVAS_W - totalW) / 2;
+  const cardY = CANVAS_H / 2 - cardH / 2;
+
+  for (let i = 0; i < unlockedLevels.length; i++) {
+    const level = unlockedLevels[i];
+    const cx = startX + i * (cardW + cardSpacing);
+    const isSelected = i === selectedLevelIndex;
+
+    // Card background
+    ctx.fillStyle = isSelected ? 'rgba(255,215,0,0.25)' : 'rgba(0,0,0,0.45)';
+    ctx.strokeStyle = isSelected ? '#ffd700' : '#457b9d';
+    ctx.lineWidth = isSelected ? 3 : 1;
+    ctx.beginPath();
+    ctx.roundRect(cx, cardY, cardW, cardH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Level name
+    drawText(level.name, cx + cardW / 2, cardY + 36, 'bold 16px monospace', isSelected ? '#ffd700' : '#fff', 'center');
+
+    // Level description (wrapped, centered)
+    ctx.font = '11px monospace';
+    ctx.fillStyle = '#a8dadc';
+    ctx.textAlign = 'center';
+    wrapText(level.description, cx + cardW / 2, cardY + 58, cardW - 20, 14);
+
+    // Best score
+    const best = levelHighScores[level.id] || 0;
+    drawText(`BEST: ${best}`, cx + cardW / 2, cardY + cardH - 14, '13px monospace', '#ffd700', 'center');
+  }
+
+  // Controls hint
+  drawText('← → Select    SPACE Start', CANVAS_W / 2, CANVAS_H - 30, '14px monospace', '#adb5bd', 'center');
+
+  // Blinking prompt
+  if (unlockedLevels.length > 0 && Math.floor(Date.now() / 500) % 2 === 0) {
+    drawText('PRESS SPACE TO START', CANVAS_W / 2, CANVAS_H - 60, 'bold 18px monospace', '#fff', 'center');
+  }
+}
+
+// ─── Draw Start Screen ────────────────────────────────────────────────────────
 function drawStartScreen() {
   // Background
   const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
@@ -920,9 +1100,6 @@ function drawStartScreen() {
   // Subtitle
   drawText('A retro platformer through the city', CANVAS_W / 2, 250, '18px monospace', '#a8dadc', 'center');
 
-  // High score
-  drawText(`HIGH SCORE: ${highScore}`, CANVAS_W / 2, 300, 'bold 20px monospace', '#ffd700', 'center');
-
   // Prompt (blinking)
   if (Math.floor(Date.now() / 500) % 2 === 0) {
     drawText('PRESS SPACE TO START', CANVAS_W / 2, 360, 'bold 22px monospace', '#fff', 'center');
@@ -932,41 +1109,43 @@ function drawStartScreen() {
   drawText('← → Move    SPACE Jump    ESC Pause', CANVAS_W / 2, 410, '14px monospace', '#adb5bd', 'center');
 }
 
-// ─── Draw Game Over Screen (task 8.3) ─────────────────────────────────────────
+// ─── Draw Game Over Screen ────────────────────────────────────────────────────
 function drawGameOverScreen() {
   ctx.fillStyle = 'rgba(0,0,0,0.85)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
   drawText('GAME OVER', CANVAS_W / 2, 160, 'bold 60px monospace', '#e63946', 'center');
   drawText(`SCORE: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#fff', 'center');
-  drawText(`HIGH SCORE: ${highScore}`, CANVAS_W / 2, 285, 'bold 22px monospace', '#ffd700', 'center');
+  const best = currentLevel ? (levelHighScores[currentLevel.id] || 0) : 0;
+  drawText(`HIGH SCORE: ${best}`, CANVAS_W / 2, 285, 'bold 22px monospace', '#ffd700', 'center');
 
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO RETRY', CANVAS_W / 2, 350, 'bold 22px monospace', '#a8dadc', 'center');
+    drawText('PRESS SPACE TO RETURN', CANVAS_W / 2, 350, 'bold 22px monospace', '#a8dadc', 'center');
   }
 }
 
-// ─── Draw Win Screen (task 8.4) ───────────────────────────────────────────────
+// ─── Draw Win Screen ──────────────────────────────────────────────────────────
 function drawWinScreen() {
   const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
   grad.addColorStop(0, '#1d3557');
-  grad.addColorStop(1, '#457b9d');
+  grad.addColorStop(0.5, '#457b9d');
+  grad.addColorStop(1, '#6fcb9f');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  drawText('ROTTERDAM EXPLORED!', CANVAS_W / 2, 120, 'bold 38px monospace', '#ffd700', 'center');
-  drawText('Congratulations!', CANVAS_W / 2, 180, 'bold 28px monospace', '#fff', 'center');
-  drawText(`FINAL SCORE: ${score}`, CANVAS_W / 2, 250, 'bold 28px monospace', '#ffd700', 'center');
-  drawText(`HIGH SCORE: ${highScore}`, CANVAS_W / 2, 295, 'bold 22px monospace', '#a8dadc', 'center');
-  if (score >= highScore) {
+  drawText('Lekker bezig, gap!', CANVAS_W / 2, 150, 'bold 38px monospace', '#ffe28a', 'center');
+  drawText(`FINAL SCORE: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#ffe28a', 'center');
+  const best = currentLevel ? (levelHighScores[currentLevel.id] || 0) : 0;
+  drawText(`HIGH SCORE: ${best}`, CANVAS_W / 2, 290, 'bold 22px monospace', '#a8dadc', 'center');
+  if (score >= best && score > 0) {
     drawText('NEW HIGH SCORE!', CANVAS_W / 2, 340, 'bold 24px monospace', '#e63946', 'center');
   }
   if (Math.floor(Date.now() / 500) % 2 === 0) {
-    drawText('PRESS SPACE TO PLAY AGAIN', CANVAS_W / 2, 400, 'bold 20px monospace', '#fff', 'center');
+    drawText('PRESS SPACE TO RETURN', CANVAS_W / 2, 400, 'bold 20px monospace', '#f1faee', 'center');
   }
 }
 
-// ─── Draw Pause Overlay (task 8.5) ────────────────────────────────────────────
+// ─── Draw Pause Overlay ───────────────────────────────────────────────────────
 function drawPause() {
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -980,6 +1159,10 @@ function render(time) {
 
   if (gameState === 'start') {
     drawStartScreen();
+    return;
+  }
+  if (gameState === 'level_select') {
+    drawLevelSelectScreen();
     return;
   }
   if (gameState === 'gameover') {
@@ -1007,13 +1190,13 @@ function render(time) {
   }
 }
 
-// ─── Game Loop (task 2.1) ──────────────────────────────────────────────────────
+// ─── Game Loop ────────────────────────────────────────────────────────────────
 let lastTime = null;
 
 function loop(timestamp) {
   if (lastTime === null) lastTime = timestamp;
   let dt = (timestamp - lastTime) / 1000;
-  dt = Math.min(dt, 0.1); // task 2.1 — cap at 100ms
+  dt = Math.min(dt, 0.1); // cap at 100ms
   lastTime = timestamp;
 
   update(dt);
@@ -1022,6 +1205,4 @@ function loop(timestamp) {
   requestAnimationFrame(loop);
 }
 
-// Preload high score and kick off
-highScore = parseInt(localStorage.getItem('rotterdam-game-highscore') || '0');
 requestAnimationFrame(loop);
