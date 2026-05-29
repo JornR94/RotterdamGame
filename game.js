@@ -12,7 +12,7 @@ const PAL = {
 
 // ─── Retro Color Palette (color-hex.com/color-palette/165) ───────────────────
 const RETRO = {
-  olive:    '#666547', // dark olive — sky base
+  olive:    '#404040', // dark grey — sky
   orange:   '#fb2e01', // orange-red — skyline silhouette
   mint:     '#6fcb9f', // mint green — ground
   gold:     '#ffe28a', // golden yellow — jumpable platforms & stars
@@ -51,6 +51,14 @@ window.addEventListener('keydown', e => {
     if (gameState === 'start') { gameState = 'level_select'; }
     else if (gameState === 'gameover') { gameState = 'level_select'; }
     else if (gameState === 'win') { gameState = 'level_select'; }
+    else if (gameState === 'death_message') {
+      deathCause = null;
+      if (deathIsGameOver) {
+        gameState = 'level_select';
+      } else {
+        gameState = 'playing';
+      }
+    }
     else if (gameState === 'level_select') {
       const unlockedLevels = LEVELS.filter(l => l.unlocked);
       if (unlockedLevels.length > 0) {
@@ -83,11 +91,20 @@ let levelHighScores = {};
 // ─── Audio ───────────────────────────────────────────────────────────────────
 let audioCtx = null;
 let audioInitialized = false;
-let musicNodes = [];
+let noiseBuffer = null;  // task 2.1
+
+function createNoiseBuffer() {  // task 2.2
+  const sampleRate = audioCtx.sampleRate;
+  const buf = audioCtx.createBuffer(1, sampleRate, sampleRate); // 1 second
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  noiseBuffer = buf;
+}
 
 function initAudio() {
   audioInitialized = true;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  createNoiseBuffer();  // task 2.3
   startMusic();
 }
 
@@ -129,19 +146,178 @@ function playGameOverSound() {
   playTone(150, 'sawtooth', t + 0.45, 0.3, 0.15);
 }
 
-// Looping background chiptune
-const MUSIC_NOTES = [262, 294, 330, 349, 392, 440, 494, 523, 392, 330, 294, 262];
-let musicInterval = null;
+// ─── NES Chiptune Engine — "Hand in Hand, Kameraden" hook ────────────────────
 
+// task 3.1 — 140 BPM
+const BEAT_DURATION = 60 / 140; // ~0.4286s per beat
+
+// task 3.2 — melody: [frequency Hz, duration in beats]
+// Phrase 1: "Hand in Hand, Ka-me-ra-den"  G4 G4 E4 D4 C4 D4 E4 G4
+// Phrase 2: "zo marcheren wij door Rotterdam" G4 A4 G4 E4 D4 C4 D4 C4
+const G4 = 392, A4 = 440, E4 = 330, D4 = 294, C4 = 262;
+const MELODY_PATTERN = [
+  [G4, 1], [G4, 1], [E4, 1], [D4, 1],
+  [C4, 1], [D4, 1], [E4, 1], [G4, 2],
+  [G4, 1], [A4, 1], [G4, 1], [E4, 1],
+  [D4, 1], [C4, 1], [D4, 1], [C4, 2],
+];
+
+// task 3.3 — bass: triangle, root notes on beats 1 & 3 (one octave below)
+// Pattern length = 16 beats (same as melody). Bass hits every 2 beats.
+const G3 = 196, C3 = 131, D3 = 147;
+const BASS_PATTERN = [
+  [G3, 2], [G3, 2],
+  [C3, 2], [G3, 2],
+  [G3, 2], [A4 / 2, 2],
+  [G3, 2], [C3, 2],
+];
+
+// task 3.4 — percussion pattern over 16 beats (4 bars of 4/4)
+// kick on beats 1,3 / snare on beats 2,4 of each bar
+const PERC_PATTERN = [];
+for (let bar = 0; bar < 4; bar++) {
+  const base = bar * 4;
+  PERC_PATTERN.push({ type: 'kick',  beat: base + 0 });
+  PERC_PATTERN.push({ type: 'snare', beat: base + 1 });
+  PERC_PATTERN.push({ type: 'kick',  beat: base + 2 });
+  PERC_PATTERN.push({ type: 'snare', beat: base + 3 });
+}
+const PATTERN_BEATS = 16;
+
+// task 4.1 — melody voice
+function scheduleMelodyNote(freq, durationBeats, startTime) {
+  if (!audioCtx) return;
+  const dur = durationBeats * BEAT_DURATION * 0.85; // slight gap between notes
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(0.12, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+  osc.start(startTime);
+  osc.stop(startTime + dur + 0.01);
+}
+
+// task 4.2 — bass voice
+function scheduleBassNote(freq, durationBeats, startTime) {
+  if (!audioCtx) return;
+  const dur = durationBeats * BEAT_DURATION * 0.7;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(0.18, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+  osc.start(startTime);
+  osc.stop(startTime + dur + 0.01);
+}
+
+// task 4.3 — kick drum
+function scheduleKick(startTime) {
+  if (!audioCtx || !noiseBuffer) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(100, startTime);
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(1.2, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start(startTime);
+  src.stop(startTime + 0.09);
+}
+
+// task 4.4 — snare drum
+function scheduleSnare(startTime) {
+  if (!audioCtx || !noiseBuffer) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(250, startTime);
+  filter.Q.value = 0.5;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.8, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.12);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start(startTime);
+  src.stop(startTime + 0.13);
+}
+
+// task 5.1 — scheduler state
+let schedulerNextTime = 0;
+let schedulerMelodyIdx = 0;
+let schedulerBassIdx = 0;
+let schedulerPercIdx = 0;
+let schedulerRunning = false;
+
+// task 5.2 — lookahead scheduler
+function musicScheduler() {
+  if (!audioCtx) return;
+  const LOOKAHEAD = 0.5; // 500ms — safe even in backgrounded tabs
+
+  // Advance melody
+  let melodyTime = schedulerNextTime;
+  let mi = schedulerMelodyIdx;
+  while (melodyTime < audioCtx.currentTime + LOOKAHEAD) {
+    const [freq, beats] = MELODY_PATTERN[mi % MELODY_PATTERN.length];
+    scheduleMelodyNote(freq, beats, melodyTime);
+    melodyTime += beats * BEAT_DURATION;
+    mi++;
+  }
+  schedulerMelodyIdx = mi;
+
+  // Advance bass
+  let bassTime = schedulerNextTime;
+  let bi = schedulerBassIdx;
+  while (bassTime < audioCtx.currentTime + LOOKAHEAD) {
+    const [freq, beats] = BASS_PATTERN[bi % BASS_PATTERN.length];
+    scheduleBassNote(freq, beats, bassTime);
+    bassTime += beats * BEAT_DURATION;
+    bi++;
+  }
+  schedulerBassIdx = bi;
+
+  // Advance percussion — schedule by beat number
+  const currentBeatStart = schedulerNextTime;
+  const lookaheadBeats = Math.ceil(LOOKAHEAD / BEAT_DURATION) + 1;
+  const startBeat = Math.round((schedulerNextTime - (audioCtx.currentTime)) / BEAT_DURATION);
+  // Simple approach: track perc by absolute beat counter
+  let pi = schedulerPercIdx;
+  let percBeatTime = schedulerNextTime;
+  while (percBeatTime < audioCtx.currentTime + LOOKAHEAD) {
+    const hit = PERC_PATTERN[pi % PERC_PATTERN.length];
+    if (hit.type === 'kick') scheduleKick(percBeatTime);
+    else scheduleSnare(percBeatTime);
+    percBeatTime += BEAT_DURATION;
+    pi++;
+  }
+  schedulerPercIdx = pi;
+
+  // Advance the global next time to wherever melody got to
+  schedulerNextTime = melodyTime;
+
+  setTimeout(musicScheduler, 50);
+}
+
+// task 5.3 — rewritten startMusic
 function startMusic() {
-  if (musicInterval) return;
-  let noteIdx = 0;
-  const playNext = () => {
-    if (!audioCtx) return;
-    playTone(MUSIC_NOTES[noteIdx % MUSIC_NOTES.length], 'square', audioCtx.currentTime, 0.18, 0.08);
-    noteIdx++;
-  };
-  musicInterval = setInterval(playNext, 220);
+  if (schedulerRunning) return;
+  schedulerRunning = true;
+  schedulerNextTime = audioCtx.currentTime + 0.05;
+  schedulerMelodyIdx = 0;
+  schedulerBassIdx = 0;
+  schedulerPercIdx = 0;
+  musicScheduler();
 }
 
 // ─── Canvas / Level Constants ─────────────────────────────────────────────────
@@ -153,12 +329,12 @@ const GROUND_Y = 400; // single ground level — all ground platforms share this
 const LEVELS = [
   {
     id: 1,
-    name: 'Rotterdam City',
+    name: 'Landmarks',
     description: 'Tour the iconic landmarks of Rotterdam.',
     unlocked: true,
-    width: CANVAS_W * 3.5,
-    skyGradient: ['#1d3557', '#457b9d', '#a8dadc'],
-    silhouetteColor: '#2d4a6e',
+    width: 3500,
+    skyColor: RETRO.olive,
+    silhouetteColor: RETRO.orange,
     platforms: [
       // Ground — unified at GROUND_Y=400 across all sections
       { x: 0,    y: GROUND_Y, w: 600,  h: 50,  color: RETRO.mint, type: 'ground' },
@@ -216,13 +392,13 @@ const LEVELS = [
     emptyStars: [
       { x: 150,  y: 350 },
       { x: 400,  y: 290 },
-      { x: 500,  y: 230 },  // moved from x:600 y:370 (was at gap edge)
+      { x: 500,  y: 230 },
       { x: 900,  y: 310 },
-      { x: 1200, y: 260 },
-      { x: 1450, y: 200 },  // moved from x:1600 y:340 (was at gap edge)
-      { x: 2050, y: 300 },  // moved from x:1900 y:370 (was near gap at 1950)
+      { x: 1250, y: 330 },  // moved from x:1200 y:260 (was just below platform x:1100 y:240 w:120)
+      { x: 1450, y: 200 },
+      { x: 2050, y: 300 },
       { x: 2100, y: 320 },
-      { x: 2300, y: 355 },
+      { x: 2340, y: 370 },  // moved from x:2300 y:355 (was at bottom edge of platform x:2200 y:340 w:100)
       { x: 2700, y: 340 },
     ],
   },
@@ -251,7 +427,8 @@ const WALK_SPEED = 220;
 
 let player;
 
-function resetPlayer() {
+function resetPlayer(keepLives) {
+  const lives = keepLives ? player.lives : 3;
   player = {
     x: 60,
     y: GROUND_Y - PLAYER_H,
@@ -259,7 +436,7 @@ function resetPlayer() {
     vy: 0,
     w: PLAYER_W,
     h: PLAYER_H,
-    lives: 3,
+    lives,
     isOnGround: false,
     facingRight: true,
     idleBob: 0,
@@ -272,6 +449,15 @@ let cameraX = 0;
 
 // ─── Popup state ─────────────────────────────────────────────────────────────
 let popup = null; // { name, fact, timer }
+
+// ─── Death message state ──────────────────────────────────────────────────────
+let deathCause = null;   // 'seagull' | 'golf' | 'fall'
+let deathIsGameOver = false;
+const DEATH_MESSAGES = {
+  seagull: 'Kijk uit joh, teringmeeuw!',
+  golf:    'Bro, die Golf denkt dat dit Zandvoort is!',
+  fall:    'Je ken ook nergens normaal lopen hier\u2026',
+};
 
 // ─── Enemy System ─────────────────────────────────────────────────────────────
 // Enemy object: { x, y, w, h, vx, type, alive, patrolMin, patrolMax, points }
@@ -451,6 +637,8 @@ function startGame(levelId) {
   resetEnemies();
   cameraX = 0;
   popup = null;
+  deathCause = null;
+  deathIsGameOver = false;
   gameState = 'playing';
 }
 
@@ -473,6 +661,9 @@ function aabbCollide(player, plat) {
 
 // ─── Update ───────────────────────────────────────────────────────────────────
 function update(dt) {
+  if (gameState === 'death_message') {
+    return;
+  }
   if (gameState !== 'playing') return;
 
   // Horizontal movement
@@ -532,14 +723,18 @@ function update(dt) {
   // Fall below canvas
   if (player.y > CANVAS_H + 50) {
     player.lives--;
+    deathCause = 'fall';
     if (player.lives <= 0) {
       playGameOverSound();
       saveHighScore();
-      gameState = 'gameover';
-      return;
+      deathIsGameOver = true;
+    } else {
+      deathIsGameOver = false;
+      resetPlayer(true);
+      cameraX = 0;
     }
-    resetPlayer();
-    cameraX = 0;
+    gameState = 'death_message';
+    return;
   }
 
   // Camera scroll
@@ -570,14 +765,17 @@ function update(dt) {
     } else {
       // Side or bottom hit — lose a life
       player.lives--;
+      deathCause = en.type === 'golf' ? 'golf' : 'seagull';
       if (player.lives <= 0) {
         playGameOverSound();
         saveHighScore();
-        gameState = 'gameover';
-        return;
+        deathIsGameOver = true;
+      } else {
+        deathIsGameOver = false;
+        resetPlayer(true);
+        cameraX = 0;
       }
-      resetPlayer();
-      cameraX = 0;
+      gameState = 'death_message';
       return;
     }
   }
@@ -642,18 +840,10 @@ function drawText(text, x, y, font, color, align) {
 
 // ─── Draw Background ──────────────────────────────────────────────────────────
 function drawBackground() {
-  // Sky gradient from currentLevel
-  const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  const sg = currentLevel.skyGradient;
-  grad.addColorStop(0,   sg[0]);
-  grad.addColorStop(0.5, sg[1]);
-  grad.addColorStop(1,   sg[2]);
-  ctx.fillStyle = grad;
+  // Sky — flat colour from currentLevel, covers the full canvas including below ground
+  // Gaps in ground platforms show this colour (no separate water strip)
+  ctx.fillStyle = currentLevel.skyColor;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  // Water strip at bottom (river Maas)
-  ctx.fillStyle = RETRO.mint;
-  ctx.fillRect(0, GROUND_Y, CANVAS_W, CANVAS_H - GROUND_Y);
 
   // Pixelated Rotterdam skyline silhouette — parallax at 0.25x camera speed
   const px = Math.floor(cameraX * 0.25); // integer pixel offset for pixelated feel
@@ -742,8 +932,8 @@ function drawBackground() {
 
   for (const [wx, bh, bw] of buildings) {
     bgRect(wx, groundLine - bh, bw, bh);
-    // Windows — lighter pixel rows to suggest detail
-    const winColor = '#1a2e45'; // darker shade for windows
+    // Windows — darker orange shade for detail
+    const winColor = '#b82200';
     ctx.fillStyle = winColor;
     for (let wy = groundLine - bh + 8; wy < groundLine - 8; wy += 10) {
       const sx = Math.floor(wx - px);
@@ -1098,7 +1288,7 @@ function drawStartScreen() {
   drawText('RUNNER', CANVAS_W / 2, 200, 'bold 64px monospace', '#e63946', 'center');
 
   // Subtitle
-  drawText('A retro platformer through the city', CANVAS_W / 2, 250, '18px monospace', '#a8dadc', 'center');
+  drawText('A retro run through the city', CANVAS_W / 2, 250, '18px monospace', '#a8dadc', 'center');
 
   // Prompt (blinking)
   if (Math.floor(Date.now() / 500) % 2 === 0) {
@@ -1133,7 +1323,7 @@ function drawWinScreen() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  drawText('Lekker bezig, gap!', CANVAS_W / 2, 150, 'bold 38px monospace', '#ffe28a', 'center');
+  drawText('LEKKER BEZIG, GAP!', CANVAS_W / 2, 150, 'bold 38px monospace', '#ffe28a', 'center');
   drawText(`FINAL SCORE: ${score}`, CANVAS_W / 2, 240, 'bold 28px monospace', '#ffe28a', 'center');
   const best = currentLevel ? (levelHighScores[currentLevel.id] || 0) : 0;
   drawText(`HIGH SCORE: ${best}`, CANVAS_W / 2, 290, 'bold 22px monospace', '#a8dadc', 'center');
@@ -1151,6 +1341,49 @@ function drawPause() {
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   drawText('PAUSED', CANVAS_W / 2, CANVAS_H / 2, 'bold 60px monospace', '#fff', 'center');
   drawText('Press ESC to resume', CANVAS_W / 2, CANVAS_H / 2 + 55, '20px monospace', '#adb5bd', 'center');
+}
+
+function drawDeathMessage() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const msg = DEATH_MESSAGES[deathCause] || '';
+
+  // Word-wrap message within ~700px
+  ctx.font = 'bold 28px monospace';
+  ctx.fillStyle = '#ffe28a';
+  ctx.textAlign = 'center';
+  const maxW = 700;
+  const words = msg.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+
+  const lineH = 40;
+  const totalH = lines.length * lineH;
+  let startY = CANVAS_H / 2 - totalH / 2 - (deathIsGameOver ? 40 : 20);
+  for (const line of lines) {
+    ctx.fillText(line, CANVAS_W / 2, startY);
+    startY += lineH;
+  }
+
+  if (deathIsGameOver) {
+    drawText('GAME OVER', CANVAS_W / 2, startY + 20, 'bold 42px monospace', '#e63946', 'center');
+    startY += 72;
+  }
+
+  if (Math.floor(Date.now() / 500) % 2 === 0) {
+    drawText('Press SPACE to continue', CANVAS_W / 2, startY + 24, 'bold 20px monospace', '#adb5bd', 'center');
+  }
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -1171,6 +1404,10 @@ function render(time) {
   }
   if (gameState === 'win') {
     drawWinScreen();
+    return;
+  }
+  if (gameState === 'death_message') {
+    drawDeathMessage();
     return;
   }
 

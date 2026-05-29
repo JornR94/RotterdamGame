@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Start screen
-The game SHALL display a start screen with the game title, high score, and a "Press SPACE to start" prompt in retro pixel font style.
+The game SHALL display a start screen with the game title, high score, a "Press SPACE to start" prompt in retro pixel font style, and a language toggle (see `i18n` spec).
 
 #### Scenario: Start screen shown on load
 - **WHEN** the page loads
